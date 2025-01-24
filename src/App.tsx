@@ -16,6 +16,7 @@ function App() {
     const id = extractVideoId(videoUrl);
     if (id) {
       setVideoId(id);
+      setVideoUrl('');
     } else {
       alert('Please enter a valid YouTube URL');
     }
@@ -24,14 +25,14 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div className="mb-8">
           <div className="flex items-center gap-2 mb-6">
             <Video className="w-6 h-6 text-red-600" />
-            <h1 className="text-2xl font-bold text-gray-800">YouTube Video Player</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Free Youtube Picture in Picture</h1>
           </div>
           
           <form onSubmit={handleSubmit} className="mb-8">
-            <div className="flex gap-4">
+            <div className="flex items-center space-x-2">
               <input
                 type="text"
                 value={videoUrl}
@@ -40,12 +41,22 @@ function App() {
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
               <button
-                type="submit"
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                type="button"
+                onClick={async () => {
+                  const text = await navigator.clipboard.readText();
+                  setVideoUrl(text);
+                }}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               >
-                Play Video
+                Paste
               </button>
             </div>
+            <button
+              type="submit"
+              className="w-full px-6 py-2 mt-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Play Video
+            </button>
           </form>
 
           {videoId && (
@@ -55,7 +66,7 @@ function App() {
                 title="YouTube video player"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="w-full h-[500px] rounded-lg"
+                className="w-full rounded-lg"
               ></iframe>
             </div>
           )}

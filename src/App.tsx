@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Video } from 'lucide-react';
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
+
+  useEffect(() => {
+    const checkClipboard = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && extractVideoId(text)) {
+          setVideoUrl(text);
+        }
+      } catch (error) {
+        console.error("Failed to read clipboard access:", error);
+      }
+    };
+
+    checkClipboard();
+  }, []);
 
   const extractVideoId = (url: string) => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;

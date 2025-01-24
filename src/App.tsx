@@ -5,15 +5,21 @@ function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
 
-  useEffect(() => {
+    useEffect(() => {
     const checkClipboard = async () => {
       try {
         const text = await navigator.clipboard.readText();
+        console.log("useEffect - clipboard text:", text);
         if (text && extractVideoId(text)) {
           setVideoUrl(text);
+          const extractedId = extractVideoId(text);
+          if (extractedId) {
+            setVideoId(extractedId);
+            console.log("useEffect - videoId extracted from clipboard:", extractedId);
+          }
         }
       } catch (error) {
-        console.error("Failed to read clipboard access:", error);
+        console.error("useEffect - Failed to read clipboard access:", error);
       }
     };
 
@@ -29,9 +35,12 @@ function App() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const id = extractVideoId(videoUrl);
+    console.log("handleSubmit - videoUrl:", videoUrl);
+    console.log("handleSubmit - extracted id:", id);
     if (id) {
       setVideoId(id);
       setVideoUrl('');
+      console.log("handleSubmit - videoId state updated:", videoId);
     } else {
       alert('Please enter a valid YouTube URL');
     }
@@ -57,13 +66,13 @@ function App() {
               />
               <button
                 type="button"
-                onClick={async () => {
-                  const text = await navigator.clipboard.readText();
-                  setVideoUrl(text);
+                onClick={() => {
+                  setVideoUrl('');
+                  setVideoId('');
                 }}
                 className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               >
-                Paste
+                Clear
               </button>
             </div>
             <button
@@ -76,6 +85,7 @@ function App() {
 
           {videoId && (
             <div className="aspect-w-16 aspect-h-9">
+              <p>Video ID: {videoId}</p> {/* Display videoId for debugging */}
               <iframe
                 src={`https://www.youtube.com/embed/${videoId}`}
                 title="YouTube video player"

@@ -95,13 +95,13 @@ function App() {
           </form>
 
           {videoId && (
-            <div className="aspect-w-16 aspect-h-9">
+            <div className="aspect-square w-full relative bg-black rounded-lg overflow-hidden">
               <iframe
                 src={`https://www.youtube.com/embed/${videoId}`}
                 title="YouTube video player"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="w-full rounded-lg"
+                className="absolute inset-0 w-full h-full"
               />
             </div>
           )}

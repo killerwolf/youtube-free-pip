@@ -6,16 +6,7 @@ function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [canShare, setCanShare] = useState(false);
   const debug = useDebug();
-
-  useEffect(() => {
-    // Check if Web Share API is supported
-    setCanShare('share' in navigator);
-    if (import.meta.env.DEV) {
-      debug.addLog('Share API supported: ' + ('share' in navigator));
-    }
-  }, [debug]);
 
   const handleClipboardText = (text: string) => {
     if (import.meta.env.DEV) {
@@ -86,39 +77,10 @@ function App() {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      const shareData: ShareData = {
-        title: 'Share YouTube Video',
-        text: 'Check out this video',
-        url: `https://youtu.be/${videoId}`,
-      };
-
-      if (navigator.share) {
-        await navigator.share(shareData);
-        if (import.meta.env.DEV) {
-          debug.addLog('Video shared successfully');
-        }
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        debug.addLog(
-          'Error sharing: ' +
-            (error instanceof Error ? error.message : 'Unknown error'),
-          'error'
-        );
-      }
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     setVideoUrl(text);
     setError(null);
-    
-    if (text) {
-      handleClipboardText(text);
-    }
   };
 
   return (
@@ -166,14 +128,6 @@ function App() {
                   className="absolute inset-0 w-full h-full"
                 />
               </div>
-              {canShare && (
-                <button
-                  onClick={handleShare}
-                  className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Share Video
-                </button>
-              )}
             </div>
           )}
         </div>

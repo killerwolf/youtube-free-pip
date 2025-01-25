@@ -1,21 +1,25 @@
 import { Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useDebug, DebugConsole } from './components/DebugConsole';
+
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [canShare, setCanShare] = useState(false);
+  const { addLog } = useDebug();
 
   useEffect(() => {
     // Check if Web Share API is supported
     setCanShare('share' in navigator);
+    addLog('Share API supported: ' + ('share' in navigator));
 
     const checkClipboard = async () => {
       try {
         // Check if the device supports the Clipboard API
         if (!navigator.clipboard) {
-          console.log('Clipboard API not available');
+          addLog('Clipboard API not available', 'error');
           return;
         }
 
@@ -25,22 +29,21 @@ function App() {
             name: 'clipboard-read' as PermissionName,
           });
           
-          console.log('Clipboard permission:', permissionResult.state);
+          addLog('Clipboard permission: ' + permissionResult.state);
           
           if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
             const text = await navigator.clipboard.readText();
             handleClipboardText(text);
           }
         } catch (permError) {
-          console.log('Permission API not available, trying direct clipboard access');
+          addLog('Permission API not available, trying direct clipboard access');
           // Fallback: try direct clipboard access
           const text = await navigator.clipboard.readText();
           handleClipboardText(text);
         }
       } catch (error) {
-        console.error('Clipboard error:', error);
-        // Don't show error on initial load
-        // setError('Could not access clipboard automatically. Please paste the URL manually.');
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        addLog('Clipboard error: ' + msg, 'error');
       }
     };
 
@@ -54,18 +57,19 @@ function App() {
 
     // Listen for clipboard changes
     document.addEventListener('paste', handleClipboardChange);
+    addLog('Clipboard paste listener added');
     
     // Cleanup
     return () => {
       document.removeEventListener('paste', handleClipboardChange);
     };
-  }, []);
+  }, [addLog]);
 
   const handleClipboardText = (text: string) => {
-    console.log('Processing clipboard text:', text);
+    addLog('Processing clipboard text: ' + text);
     if (text) {
       const extractedId = extractVideoId(text);
-      console.log('Extracted ID:', extractedId);
+      addLog('Extracted ID: ' + (extractedId || 'none'));
       
       if (extractedId) {
         setVideoUrl(text);
@@ -81,7 +85,7 @@ function App() {
       const match = url.match(regExp);
       return match && match[7].length === 11 ? match[7] : false;
     } catch (error) {
-      console.error('Error extracting video ID:', error);
+      addLog('Error extracting video ID: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
       return false;
     }
   };
@@ -94,8 +98,10 @@ function App() {
     if (id) {
       setVideoId(id);
       setVideoUrl('');
+      addLog('Video ID set: ' + id);
     } else {
       setError('Please enter a valid YouTube URL');
+      addLog('Invalid YouTube URL submitted', 'error');
     }
   };
 
@@ -103,14 +109,16 @@ function App() {
     setVideoUrl('');
     setVideoId('');
     setError(null);
+    addLog('Form cleared');
   };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
     try {
       const text = e.clipboardData.getData('text');
+      addLog('Text pasted: ' + text);
       handleClipboardText(text);
     } catch (error) {
-      console.error('Paste event error:', error);
+      addLog('Paste event error: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     }
   };
 
@@ -124,9 +132,10 @@ function App() {
 
       if (navigator.share) {
         await navigator.share(shareData);
+        addLog('Video shared successfully');
       }
     } catch (error) {
-      console.error('Error sharing:', error);
+      addLog('Error sharing: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     }
   };
 
@@ -137,7 +146,7 @@ function App() {
           <div className="flex items-center gap-2 mb-6">
             <Video className="w-6 h-6 text-red-600" />
             <h1 className="text-2xl font-bold text-gray-800">
-              Free Youtube PiP
+              Free Youtube Picture in Picture
             </h1>
           </div>
 
@@ -192,6 +201,7 @@ function App() {
           )}
         </div>
       </div>
+      <DebugConsole />
     </div>
   );
 }

@@ -22,10 +22,11 @@ function App() {
       addLog('Extracted ID: ' + (extractedId || 'none'));
 
       if (extractedId) {
-        setVideoUrl(text);
         setVideoId(extractedId);
+        setVideoUrl('');
+        addLog('Video ID set: ' + extractedId);
       } else {
-        setError('No valid YouTube URL found in clipboard');
+        setError('No valid YouTube URL found');
       }
     }
   };
@@ -46,21 +47,6 @@ function App() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-
-    const id = extractVideoId(videoUrl);
-    if (id) {
-      setVideoId(id);
-      setVideoUrl('');
-      addLog('Video ID set: ' + id);
-    } else {
-      setError('Please enter a valid YouTube URL');
-      addLog('Invalid YouTube URL submitted', 'error');
-    }
-  };
-
   const handleClear = () => {
     setVideoUrl('');
     setVideoId('');
@@ -72,6 +58,7 @@ function App() {
     try {
       const text = e.clipboardData.getData('text');
       addLog('Text pasted: ' + text);
+      setError(null);
       handleClipboardText(text);
     } catch (error) {
       addLog(
@@ -103,6 +90,16 @@ function App() {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setVideoUrl(text);
+    setError(null);
+    
+    if (text) {
+      handleClipboardText(text);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -114,12 +111,12 @@ function App() {
             </h1>
           </div>
 
-          <form onSubmit={handleSubmit} className="mb-8">
+          <div className="mb-8">
             <div className="flex items-center space-x-2">
               <input
                 type="text"
                 value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
+                onChange={handleChange}
                 onPaste={handlePaste}
                 placeholder="Paste YouTube URL here (Ctrl+V/Cmd+V)"
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -134,17 +131,8 @@ function App() {
               </button>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <button
-                type="submit"
-                className="w-full px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-              >
-                Play Video
-              </button>
-            </div>
-
             {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
-          </form>
+          </div>
 
           {videoId && (
             <div className="space-y-4">

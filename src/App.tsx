@@ -1,7 +1,6 @@
-import { Video } from 'lucide-react';
+import { Video, Clipboard } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDebug, DebugConsole } from './components/DebugConsole';
-
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -14,56 +13,20 @@ function App() {
     // Check if Web Share API is supported
     setCanShare('share' in navigator);
     addLog('Share API supported: ' + ('share' in navigator));
-
-    const checkClipboard = async () => {
-      try {
-        // Check if the device supports the Clipboard API
-        if (!navigator.clipboard) {
-          addLog('Clipboard API not available', 'error');
-          return;
-        }
-
-        // Try to get clipboard permission
-        try {
-          const permissionResult = await navigator.permissions.query({
-            name: 'clipboard-read' as PermissionName,
-          });
-          
-          addLog('Clipboard permission: ' + permissionResult.state);
-          
-          if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
-            const text = await navigator.clipboard.readText();
-            handleClipboardText(text);
-          }
-        } catch (permError) {
-          addLog('Permission API not available, trying direct clipboard access');
-          // Fallback: try direct clipboard access
-          const text = await navigator.clipboard.readText();
-          handleClipboardText(text);
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error';
-        addLog('Clipboard error: ' + msg, 'error');
-      }
-    };
-
-    // Initial check
-    checkClipboard();
-
-    // Set up clipboard event listener
-    const handleClipboardChange = () => {
-      checkClipboard();
-    };
-
-    // Listen for clipboard changes
-    document.addEventListener('paste', handleClipboardChange);
-    addLog('Clipboard paste listener added');
-    
-    // Cleanup
-    return () => {
-      document.removeEventListener('paste', handleClipboardChange);
-    };
   }, [addLog]);
+
+  const handleClipboardRead = async () => {
+    try {
+      addLog('Attempting to read clipboard...');
+      const text = await navigator.clipboard.readText();
+      addLog('Clipboard content received');
+      handleClipboardText(text);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      addLog('Clipboard error: ' + msg, 'error');
+      setError('Could not access clipboard. Please paste the URL manually.');
+    }
+  };
 
   const handleClipboardText = (text: string) => {
     addLog('Processing clipboard text: ' + text);
@@ -74,6 +37,8 @@ function App() {
       if (extractedId) {
         setVideoUrl(text);
         setVideoId(extractedId);
+      } else {
+        setError('No valid YouTube URL found in clipboard');
       }
     }
   };
@@ -169,13 +134,25 @@ function App() {
                 Clear
               </button>
             </div>
+            
+            <div className="flex gap-2 mt-4">
+              <button
+                type="submit"
+                className="flex-1 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              >
+                Play Video
+              </button>
+              <button
+                type="button"
+                onClick={handleClipboardRead}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <Clipboard className="w-4 h-4" />
+                Paste from Clipboard
+              </button>
+            </div>
+
             {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
-            <button
-              type="submit"
-              className="w-full px-6 py-2 mt-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-            >
-              Play Video
-            </button>
           </form>
 
           {videoId && (

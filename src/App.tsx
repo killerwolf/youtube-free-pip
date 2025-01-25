@@ -102,7 +102,7 @@ function App() {
           <div className="flex items-center gap-2 mb-6">
             <Video className="w-6 h-6 text-red-600" />
             <h1 className="text-2xl font-bold text-gray-800">
-              Free Youtube Picture in Picture
+              FREE Youtube Picture in Picture
             </h1>
           </div>
 

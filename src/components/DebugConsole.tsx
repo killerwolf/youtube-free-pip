@@ -7,9 +7,31 @@ interface DebugContextType {
   clearLogs: () => void;
 }
 
-const DebugContext = createContext<DebugContextType | undefined>(undefined);
+const DebugContext = createContext<DebugContextType>({
+  logs: [],
+  addLog: () => {},
+  clearLogs: () => {},
+});
+
+// No-op provider for production
+const ProductionDebugProvider = ({ children }: { children: React.ReactNode }) => (
+  <DebugContext.Provider 
+    value={{ 
+      logs: [], 
+      addLog: () => {}, 
+      clearLogs: () => {} 
+    }}
+  >
+    {children}
+  </DebugContext.Provider>
+);
 
 export function DebugProvider({ children }: { children: React.ReactNode }) {
+  // If not in development, use the no-op provider
+  if (!import.meta.env.DEV) {
+    return <ProductionDebugProvider>{children}</ProductionDebugProvider>;
+  }
+
   const [logs, setLogs] = useState<string[]>([]);
 
   const addLog = useCallback(
@@ -34,13 +56,13 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
 
 export function useDebug() {
   const context = useContext(DebugContext);
-  if (!context) {
-    throw new Error('useDebug must be used within a DebugProvider');
-  }
   return context;
 }
 
 export function DebugConsole() {
+  // Only render in development mode
+  if (!import.meta.env.DEV) return null;
+
   const { logs, clearLogs } = useDebug();
   const [isExpanded, setIsExpanded] = useState(false);
 

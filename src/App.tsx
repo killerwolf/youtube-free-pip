@@ -7,24 +7,33 @@ function App() {
   const [videoId, setVideoId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [canShare, setCanShare] = useState(false);
-  const { addLog } = useDebug();
+  const debug = useDebug();
 
   useEffect(() => {
     // Check if Web Share API is supported
     setCanShare('share' in navigator);
-    addLog('Share API supported: ' + ('share' in navigator));
-  }, [addLog]);
+    if (import.meta.env.DEV) {
+      debug.addLog('Share API supported: ' + ('share' in navigator));
+    }
+  }, [debug]);
 
   const handleClipboardText = (text: string) => {
-    addLog('Processing clipboard text: ' + text);
+    if (import.meta.env.DEV) {
+      debug.addLog('Processing clipboard text: ' + text);
+    }
+    
     if (text) {
       const extractedId = extractVideoId(text);
-      addLog('Extracted ID: ' + (extractedId || 'none'));
+      if (import.meta.env.DEV) {
+        debug.addLog('Extracted ID: ' + (extractedId || 'none'));
+      }
 
       if (extractedId) {
         setVideoId(extractedId);
         setVideoUrl('');
-        addLog('Video ID set: ' + extractedId);
+        if (import.meta.env.DEV) {
+          debug.addLog('Video ID set: ' + extractedId);
+        }
       } else {
         setError('No valid YouTube URL found');
       }
@@ -38,11 +47,13 @@ function App() {
       const match = url.match(regExp);
       return match && match[7].length === 11 ? match[7] : false;
     } catch (error) {
-      addLog(
-        'Error extracting video ID: ' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-        'error'
-      );
+      if (import.meta.env.DEV) {
+        debug.addLog(
+          'Error extracting video ID: ' +
+            (error instanceof Error ? error.message : 'Unknown error'),
+          'error'
+        );
+      }
       return false;
     }
   };
@@ -51,21 +62,27 @@ function App() {
     setVideoUrl('');
     setVideoId('');
     setError(null);
-    addLog('Form cleared');
+    if (import.meta.env.DEV) {
+      debug.addLog('Form cleared');
+    }
   };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
     try {
       const text = e.clipboardData.getData('text');
-      addLog('Text pasted: ' + text);
+      if (import.meta.env.DEV) {
+        debug.addLog('Text pasted: ' + text);
+      }
       setError(null);
       handleClipboardText(text);
     } catch (error) {
-      addLog(
-        'Paste event error: ' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-        'error'
-      );
+      if (import.meta.env.DEV) {
+        debug.addLog(
+          'Paste event error: ' +
+            (error instanceof Error ? error.message : 'Unknown error'),
+          'error'
+        );
+      }
     }
   };
 
@@ -79,14 +96,18 @@ function App() {
 
       if (navigator.share) {
         await navigator.share(shareData);
-        addLog('Video shared successfully');
+        if (import.meta.env.DEV) {
+          debug.addLog('Video shared successfully');
+        }
       }
     } catch (error) {
-      addLog(
-        'Error sharing: ' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-        'error'
-      );
+      if (import.meta.env.DEV) {
+        debug.addLog(
+          'Error sharing: ' +
+            (error instanceof Error ? error.message : 'Unknown error'),
+          'error'
+        );
+      }
     }
   };
 

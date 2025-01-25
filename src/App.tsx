@@ -1,4 +1,4 @@
-import { Clipboard, Video } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DebugConsole, useDebug } from './components/DebugConsole';
 
@@ -14,40 +14,6 @@ function App() {
     setCanShare('share' in navigator);
     addLog('Share API supported: ' + ('share' in navigator));
   }, [addLog]);
-
-  // Update the handleClipboardRead function
-  const handleClipboardRead = async () => {
-    try {
-      addLog('Attempting to read clipboard...');
-
-      // Mobile browsers require a user gesture for clipboard access
-      const text = await navigator.clipboard.readText();
-
-      // Special handling for iOS Safari
-      if (text === '' && /iP(hone|ad|od)/.test(navigator.userAgent)) {
-        addLog('iOS clipboard detection workaround');
-        // Create temporary input to trigger iOS paste
-        const tempInput = document.createElement('input');
-        tempInput.style.position = 'fixed';
-        tempInput.style.opacity = '0';
-        document.body.appendChild(tempInput);
-        tempInput.focus();
-
-        // Try to read after a short delay
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        const newText = await navigator.clipboard.readText();
-        document.body.removeChild(tempInput);
-
-        handleClipboardText(newText);
-      } else {
-        handleClipboardText(text);
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      addLog('Clipboard error: ' + msg, 'error');
-      setError('Tap the input field and paste manually (Ctrl+V/Cmd+V)');
-    }
-  };
 
   const handleClipboardText = (text: string) => {
     addLog('Processing clipboard text: ' + text);
@@ -171,18 +137,9 @@ function App() {
             <div className="flex gap-2 mt-4">
               <button
                 type="submit"
-                className="flex-1 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="w-full px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
                 Play Video
-              </button>
-              <button
-                type="button"
-                onClick={handleClipboardRead}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <Clipboard className="w-4 h-4" />
-                Paste from Clipboard
-                <span className="text-xs opacity-75">(Tap here first)</span>
               </button>
             </div>
 

@@ -13,21 +13,51 @@ function App() {
   useEffect(() => {
     const checkClipboard = async () => {
       try {
-        const text = await navigator.clipboard.readText();
-        if (text) {
-          const extractedId = extractVideoId(text);
-          if (extractedId) {
-            setVideoUrl(text);
-            setVideoId(extractedId);
+        // Request clipboard permission first
+        const permissionResult = await navigator.permissions.query({
+          name: 'clipboard-read' as PermissionName,
+        });
+        
+        console.log('Clipboard permission:', permissionResult.state);
+        
+        if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
+          const text = await navigator.clipboard.readText();
+          console.log('Clipboard content:', text);
+          
+          if (text) {
+            const extractedId = extractVideoId(text);
+            console.log('Extracted ID:', extractedId);
+            
+            if (extractedId) {
+              setVideoUrl(text);
+              setVideoId(extractedId);
+            }
           }
+        } else {
+          setError('Clipboard permission denied. Please paste the URL manually.');
         }
       } catch (error) {
         const youtubeError = error as YouTubeError;
+        console.error('Clipboard error:', youtubeError);
         setError(`Failed to read clipboard: ${youtubeError.message}`);
       }
     };
 
+    // Initial check
     checkClipboard();
+
+    // Set up clipboard event listener
+    const handleClipboardChange = () => {
+      checkClipboard();
+    };
+
+    // Listen for clipboard changes
+    document.addEventListener('paste', handleClipboardChange);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('paste', handleClipboardChange);
+    };
   }, []);
 
   const extractVideoId = (url: string): string | false => {
@@ -56,6 +86,15 @@ function App() {
     setError(null);
   };
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text');
+    const id = extractVideoId(text);
+    if (id) {
+      setVideoUrl(text);
+      setVideoId(id);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -73,6 +112,7 @@ function App() {
                 type="text"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
+                onPaste={handlePaste}
                 placeholder="Enter YouTube video URL (e.g., https://youtu.be/NWus8pVPXaI)"
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 aria-label="YouTube URL"

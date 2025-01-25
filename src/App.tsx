@@ -1,6 +1,6 @@
-import { Video, Clipboard } from 'lucide-react';
+import { Clipboard, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useDebug, DebugConsole } from './components/DebugConsole';
+import { DebugConsole, useDebug } from './components/DebugConsole';
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -15,16 +15,37 @@ function App() {
     addLog('Share API supported: ' + ('share' in navigator));
   }, [addLog]);
 
+  // Update the handleClipboardRead function
   const handleClipboardRead = async () => {
     try {
       addLog('Attempting to read clipboard...');
+
+      // Mobile browsers require a user gesture for clipboard access
       const text = await navigator.clipboard.readText();
-      addLog('Clipboard content received');
-      handleClipboardText(text);
+
+      // Special handling for iOS Safari
+      if (text === '' && /iP(hone|ad|od)/.test(navigator.userAgent)) {
+        addLog('iOS clipboard detection workaround');
+        // Create temporary input to trigger iOS paste
+        const tempInput = document.createElement('input');
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.focus();
+
+        // Try to read after a short delay
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const newText = await navigator.clipboard.readText();
+        document.body.removeChild(tempInput);
+
+        handleClipboardText(newText);
+      } else {
+        handleClipboardText(text);
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       addLog('Clipboard error: ' + msg, 'error');
-      setError('Could not access clipboard. Please paste the URL manually.');
+      setError('Tap the input field and paste manually (Ctrl+V/Cmd+V)');
     }
   };
 
@@ -33,7 +54,7 @@ function App() {
     if (text) {
       const extractedId = extractVideoId(text);
       addLog('Extracted ID: ' + (extractedId || 'none'));
-      
+
       if (extractedId) {
         setVideoUrl(text);
         setVideoId(extractedId);
@@ -50,7 +71,11 @@ function App() {
       const match = url.match(regExp);
       return match && match[7].length === 11 ? match[7] : false;
     } catch (error) {
-      addLog('Error extracting video ID: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      addLog(
+        'Error extracting video ID: ' +
+          (error instanceof Error ? error.message : 'Unknown error'),
+        'error'
+      );
       return false;
     }
   };
@@ -83,7 +108,11 @@ function App() {
       addLog('Text pasted: ' + text);
       handleClipboardText(text);
     } catch (error) {
-      addLog('Paste event error: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      addLog(
+        'Paste event error: ' +
+          (error instanceof Error ? error.message : 'Unknown error'),
+        'error'
+      );
     }
   };
 
@@ -100,7 +129,11 @@ function App() {
         addLog('Video shared successfully');
       }
     } catch (error) {
-      addLog('Error sharing: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      addLog(
+        'Error sharing: ' +
+          (error instanceof Error ? error.message : 'Unknown error'),
+        'error'
+      );
     }
   };
 
@@ -122,7 +155,7 @@ function App() {
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
                 onPaste={handlePaste}
-                placeholder="Enter YouTube video URL (e.g., https://youtu.be/NWus8pVPXaI)"
+                placeholder="Paste YouTube URL here (Ctrl+V/Cmd+V)"
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 aria-label="YouTube URL"
               />
@@ -134,7 +167,7 @@ function App() {
                 Clear
               </button>
             </div>
-            
+
             <div className="flex gap-2 mt-4">
               <button
                 type="submit"
@@ -149,6 +182,7 @@ function App() {
               >
                 <Clipboard className="w-4 h-4" />
                 Paste from Clipboard
+                <span className="text-xs opacity-75">(Tap here first)</span>
               </button>
             </div>
 

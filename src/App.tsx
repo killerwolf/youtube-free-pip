@@ -1,45 +1,46 @@
 import { Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-interface YouTubeError extends Error {
-  message: string;
-}
-
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [canShare, setCanShare] = useState(false);
 
   useEffect(() => {
+    // Check if Web Share API is supported
+    setCanShare('share' in navigator);
+
     const checkClipboard = async () => {
       try {
-        // Request clipboard permission first
-        const permissionResult = await navigator.permissions.query({
-          name: 'clipboard-read' as PermissionName,
-        });
-        
-        console.log('Clipboard permission:', permissionResult.state);
-        
-        if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
-          const text = await navigator.clipboard.readText();
-          console.log('Clipboard content:', text);
+        // Check if the device supports the Clipboard API
+        if (!navigator.clipboard) {
+          console.log('Clipboard API not available');
+          return;
+        }
+
+        // Try to get clipboard permission
+        try {
+          const permissionResult = await navigator.permissions.query({
+            name: 'clipboard-read' as PermissionName,
+          });
           
-          if (text) {
-            const extractedId = extractVideoId(text);
-            console.log('Extracted ID:', extractedId);
-            
-            if (extractedId) {
-              setVideoUrl(text);
-              setVideoId(extractedId);
-            }
+          console.log('Clipboard permission:', permissionResult.state);
+          
+          if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
+            const text = await navigator.clipboard.readText();
+            handleClipboardText(text);
           }
-        } else {
-          setError('Clipboard permission denied. Please paste the URL manually.');
+        } catch (permError) {
+          console.log('Permission API not available, trying direct clipboard access');
+          // Fallback: try direct clipboard access
+          const text = await navigator.clipboard.readText();
+          handleClipboardText(text);
         }
       } catch (error) {
-        const youtubeError = error as YouTubeError;
-        console.error('Clipboard error:', youtubeError);
-        setError(`Failed to read clipboard: ${youtubeError.message}`);
+        console.error('Clipboard error:', error);
+        // Don't show error on initial load
+        // setError('Could not access clipboard automatically. Please paste the URL manually.');
       }
     };
 
@@ -60,11 +61,29 @@ function App() {
     };
   }, []);
 
+  const handleClipboardText = (text: string) => {
+    console.log('Processing clipboard text:', text);
+    if (text) {
+      const extractedId = extractVideoId(text);
+      console.log('Extracted ID:', extractedId);
+      
+      if (extractedId) {
+        setVideoUrl(text);
+        setVideoId(extractedId);
+      }
+    }
+  };
+
   const extractVideoId = (url: string): string | false => {
-    const regExp =
-      /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[7].length === 11 ? match[7] : false;
+    try {
+      const regExp =
+        /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+      const match = url.match(regExp);
+      return match && match[7].length === 11 ? match[7] : false;
+    } catch (error) {
+      console.error('Error extracting video ID:', error);
+      return false;
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -87,11 +106,27 @@ function App() {
   };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData('text');
-    const id = extractVideoId(text);
-    if (id) {
-      setVideoUrl(text);
-      setVideoId(id);
+    try {
+      const text = e.clipboardData.getData('text');
+      handleClipboardText(text);
+    } catch (error) {
+      console.error('Paste event error:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareData: ShareData = {
+        title: 'Share YouTube Video',
+        text: 'Check out this video',
+        url: `https://youtu.be/${videoId}`,
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
     }
   };
 
@@ -102,7 +137,7 @@ function App() {
           <div className="flex items-center gap-2 mb-6">
             <Video className="w-6 h-6 text-red-600" />
             <h1 className="text-2xl font-bold text-gray-800">
-              FREE Youtube Picture in Picture
+              Free Youtube PiP
             </h1>
           </div>
 
@@ -135,14 +170,24 @@ function App() {
           </form>
 
           {videoId && (
-            <div className="aspect-square w-full relative bg-black rounded-lg overflow-hidden">
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-              />
+            <div className="space-y-4">
+              <div className="aspect-square w-full relative bg-black rounded-lg overflow-hidden">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}`}
+                  title="YouTube video player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+              {canShare && (
+                <button
+                  onClick={handleShare}
+                  className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Share Video
+                </button>
+              )}
             </div>
           )}
         </div>

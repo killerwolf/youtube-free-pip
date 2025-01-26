@@ -1,17 +1,23 @@
 import { Video } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { DebugConsole, useDebug } from './components/DebugConsole';
+import { AuthCallback } from './components/auth/AuthCallback';
+import { PlaylistSelector } from './components/youtube/PlaylistSelector';
 
-function App() {
-  const [videoUrl, setVideoUrl] = useState('');
-  const [videoId, setVideoId] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [fullscreenActivated, setFullscreenActivated] = useState(false);
+function VideoPlayer({
+  videoId,
+  onClose,
+}: {
+  videoId: string;
+  onClose: () => void;
+}) {
   const debug = useDebug();
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isEnteringFullscreen = useRef(false);
   const attemptCount = useRef(0);
+  const [fullscreenActivated, setFullscreenActivated] = useState(false);
   const maxAttempts = 5;
 
   const isMobileDevice = () => {
@@ -28,7 +34,6 @@ function App() {
       const isMobile = isMobileDevice();
 
       if (document.fullscreenEnabled) {
-        // Try iframe first on mobile
         if (isMobile && iframeRef.current) {
           try {
             await iframeRef.current.requestFullscreen();
@@ -44,7 +49,6 @@ function App() {
           }
         }
 
-        // Try container
         await videoContainerRef.current.requestFullscreen();
         setFullscreenActivated(true);
         if (import.meta.env.DEV) {
@@ -64,9 +68,8 @@ function App() {
         );
       }
 
-      // Schedule retry if not exceeded max attempts
       if (attemptCount.current < maxAttempts) {
-        const delay = Math.pow(2, attemptCount.current) * 500; // Exponential backoff
+        const delay = Math.pow(2, attemptCount.current) * 500;
         attemptCount.current++;
         if (import.meta.env.DEV) {
           debug.addLog(`Retrying fullscreen in ${delay}ms (attempt ${attemptCount.current})`);
@@ -81,7 +84,6 @@ function App() {
   useEffect(() => {
     if (videoId && !fullscreenActivated) {
       attemptCount.current = 0;
-      // Initial delay for mobile devices
       const initialDelay = isMobileDevice() ? 2000 : 1000;
       const timeoutId = setTimeout(enterFullscreen, initialDelay);
       return () => clearTimeout(timeoutId);
@@ -92,96 +94,45 @@ function App() {
     setFullscreenActivated(false);
   }, [videoId]);
 
-  const handleClipboardText = (text: string) => {
-    if (import.meta.env.DEV) {
-      debug.addLog('Processing clipboard text: ' + text);
-    }
-    
-    if (text) {
-      const extractedId = extractVideoId(text);
-      if (import.meta.env.DEV) {
-        debug.addLog('Extracted ID: ' + (extractedId || 'none'));
-      }
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <div 
+          ref={videoContainerRef}
+          className="aspect-video w-full relative bg-black rounded-lg overflow-hidden"
+        >
+          <iframe
+            ref={iframeRef}
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=0`}
+            title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+        </div>
+        <button
+          onClick={onClose}
+          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
 
-      if (extractedId) {
-        setVideoId(extractedId);
-        setVideoUrl('');
-        if (import.meta.env.DEV) {
-          debug.addLog('Video ID set: ' + extractedId);
-        }
-      } else {
-        setError('No valid YouTube URL found');
-      }
-    }
-  };
+function AppContent() {
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
 
-  const extractVideoId = (url: string): string | false => {
-    try {
-      const regExp =
-        /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-      const match = url.match(regExp);
-      return match && match[7].length === 11 ? match[7] : false;
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        debug.addLog(
-          'Error extracting video ID: ' +
-            (error instanceof Error ? error.message : 'Unknown error'),
-          'error'
-        );
-      }
-      return false;
-    }
-  };
-
-  const handleClear = () => {
-    setVideoUrl('');
-    setVideoId('');
-    setError(null);
-    setFullscreenActivated(false);
-    if (import.meta.env.DEV) {
-      debug.addLog('Form cleared');
-    }
-
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-      if (import.meta.env.DEV) {
-        debug.addLog('Exited fullscreen mode');
-      }
-    }
-  };
-
-  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
-    try {
-      const text = e.clipboardData.getData('text');
-      if (import.meta.env.DEV) {
-        debug.addLog('Text pasted: ' + text);
-      }
-      setError(null);
-      handleClipboardText(text);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        debug.addLog(
-          'Paste event error: ' +
-            (error instanceof Error ? error.message : 'Unknown error'),
-          'error'
-        );
-      }
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value;
-    setVideoUrl(text);
-    setError(null);
-    
-    if (text) {
-      handleClipboardText(text);
-    }
+  const handleVideoSelect = (videoId: string) => {
+    setSelectedVideoId(videoId);
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-6">
             <Video className="w-6 h-6 text-red-600" />
@@ -190,52 +141,36 @@ function App() {
             </h1>
           </div>
 
-          <div className="mb-8">
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={videoUrl}
-                onChange={handleChange}
-                onPaste={handlePaste}
-                placeholder="Paste YouTube URL here (Ctrl+V/Cmd+V)"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                aria-label="YouTube URL"
-              />
-              <button
-                type="button"
-                onClick={handleClear}
-                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Clear
-              </button>
-            </div>
-
-            {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
-          </div>
-
-          {videoId && (
-            <div className="space-y-4">
-              <div className="relative">
-                <div 
-                  ref={videoContainerRef}
-                  className="aspect-square w-full relative bg-black rounded-lg overflow-hidden"
-                >
-                  <iframe
-                    ref={iframeRef}
-                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=0`}
-                    title="YouTube video player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full"
-                  />
+          <div className="grid gap-8 md:grid-cols-[2fr,1fr]">
+            <div>
+              {selectedVideoId ? (
+                <VideoPlayer
+                  videoId={selectedVideoId}
+                  onClose={() => setSelectedVideoId(null)}
+                />
+              ) : (
+                <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-500">Select a video from your playlists</p>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+            <div className="order-first md:order-last">
+              <PlaylistSelector onVideoSelect={handleVideoSelect} />
+            </div>
+          </div>
         </div>
       </div>
       <DebugConsole />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/" element={<AppContent />} />
+    </Routes>
   );
 }
 

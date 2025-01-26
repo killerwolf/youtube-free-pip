@@ -1,5 +1,5 @@
 import { Video } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { DebugConsole, useDebug } from './components/DebugConsole';
 
 function App() {
@@ -7,6 +7,44 @@ function App() {
   const [videoId, setVideoId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const debug = useDebug();
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const isEnteringFullscreen = useRef(false);
+
+  const enterFullscreen = useCallback(async () => {
+    if (!videoContainerRef.current || isEnteringFullscreen.current) return;
+
+    try {
+      isEnteringFullscreen.current = true;
+      if (document.fullscreenEnabled) {
+        await videoContainerRef.current.requestFullscreen();
+        if (import.meta.env.DEV) {
+          debug.addLog('Entered fullscreen mode');
+        }
+      } else {
+        if (import.meta.env.DEV) {
+          debug.addLog('Fullscreen not supported', 'error');
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        debug.addLog(
+          'Error entering fullscreen: ' +
+            (error instanceof Error ? error.message : 'Unknown error'),
+          'error'
+        );
+      }
+    } finally {
+      isEnteringFullscreen.current = false;
+    }
+  }, [debug]);
+
+  useEffect(() => {
+    if (videoId) {
+      // Small delay to ensure iframe is loaded
+      const timeoutId = setTimeout(enterFullscreen, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [videoId, enterFullscreen]);
 
   const handleClipboardText = (text: string) => {
     if (import.meta.env.DEV) {
@@ -56,6 +94,14 @@ function App() {
     if (import.meta.env.DEV) {
       debug.addLog('Form cleared');
     }
+
+    // Exit fullscreen when clearing
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+      if (import.meta.env.DEV) {
+        debug.addLog('Exited fullscreen mode');
+      }
+    }
   };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -81,6 +127,10 @@ function App() {
     const text = e.target.value;
     setVideoUrl(text);
     setError(null);
+    
+    if (text) {
+      handleClipboardText(text);
+    }
   };
 
   return (
@@ -119,11 +169,14 @@ function App() {
 
           {videoId && (
             <div className="space-y-4">
-              <div className="aspect-square w-full relative bg-black rounded-lg overflow-hidden">
+              <div 
+                ref={videoContainerRef}
+                className="aspect-square w-full relative bg-black rounded-lg overflow-hidden"
+              >
                 <iframe
-                  src={`https://www.youtube.com/embed/${videoId}`}
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=0`}
                   title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                   allowFullScreen
                   className="absolute inset-0 w-full h-full"
                 />

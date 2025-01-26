@@ -9,18 +9,46 @@ function App() {
   const [fullscreenActivated, setFullscreenActivated] = useState(false);
   const debug = useDebug();
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const isEnteringFullscreen = useRef(false);
+  const attemptCount = useRef(0);
+  const maxAttempts = 5;
+
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  };
 
   const enterFullscreen = useCallback(async () => {
     if (!videoContainerRef.current || isEnteringFullscreen.current || fullscreenActivated) return;
 
     try {
       isEnteringFullscreen.current = true;
+      const isMobile = isMobileDevice();
+
       if (document.fullscreenEnabled) {
+        // Try iframe first on mobile
+        if (isMobile && iframeRef.current) {
+          try {
+            await iframeRef.current.requestFullscreen();
+            setFullscreenActivated(true);
+            if (import.meta.env.DEV) {
+              debug.addLog('Entered fullscreen mode (iframe)');
+            }
+            return;
+          } catch (error) {
+            if (import.meta.env.DEV) {
+              debug.addLog('Failed to enter fullscreen on iframe, trying container');
+            }
+          }
+        }
+
+        // Try container
         await videoContainerRef.current.requestFullscreen();
         setFullscreenActivated(true);
         if (import.meta.env.DEV) {
-          debug.addLog('Entered fullscreen mode');
+          debug.addLog('Entered fullscreen mode (container)');
         }
       } else {
         if (import.meta.env.DEV) {
@@ -35,6 +63,16 @@ function App() {
           'error'
         );
       }
+
+      // Schedule retry if not exceeded max attempts
+      if (attemptCount.current < maxAttempts) {
+        const delay = Math.pow(2, attemptCount.current) * 500; // Exponential backoff
+        attemptCount.current++;
+        if (import.meta.env.DEV) {
+          debug.addLog(`Retrying fullscreen in ${delay}ms (attempt ${attemptCount.current})`);
+        }
+        setTimeout(enterFullscreen, delay);
+      }
     } finally {
       isEnteringFullscreen.current = false;
     }
@@ -42,7 +80,10 @@ function App() {
 
   useEffect(() => {
     if (videoId && !fullscreenActivated) {
-      const timeoutId = setTimeout(enterFullscreen, 1000);
+      attemptCount.current = 0;
+      // Initial delay for mobile devices
+      const initialDelay = isMobileDevice() ? 2000 : 1000;
+      const timeoutId = setTimeout(enterFullscreen, initialDelay);
       return () => clearTimeout(timeoutId);
     }
   }, [videoId, enterFullscreen, fullscreenActivated]);
@@ -180,6 +221,7 @@ function App() {
                   className="aspect-square w-full relative bg-black rounded-lg overflow-hidden"
                 >
                   <iframe
+                    ref={iframeRef}
                     src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=0`}
                     title="YouTube video player"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"

@@ -1,22 +1,70 @@
 import type React from 'react';
-import { createContext, useCallback, useContext, useState } from 'react';
-import { useDebugMode } from './debug';
+import { createContext, useCallback, useContext, useState, useEffect } from 'react';
 
 interface DebugContextType {
   logs: string[];
   addLog: (message: string, type?: 'info' | 'error') => void;
   clearLogs: () => void;
+  isDebugMode: boolean;
 }
 
 const DebugContext = createContext<DebugContextType>({
   logs: [],
   addLog: () => {},
   clearLogs: () => {},
+  isDebugMode: false,
 });
+
+const STORAGE_KEY = 'youtube-pip-debug-state';
+
+// Load debug state from localStorage or URL parameter
+const getInitialDebugState = (): boolean => {
+  // Check URL parameter first
+  const params = new URLSearchParams(window.location.search);
+  const debugParam = params.get('debug');
+  if (debugParam !== null) {
+    const debugValue = debugParam === '1';
+    try {
+      localStorage.setItem(STORAGE_KEY, String(debugValue));
+    } catch (error) {
+      console.warn('Error saving debug state:', error);
+    }
+    return debugValue;
+  }
+
+  // Then check localStorage
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'true';
+  } catch (error) {
+    console.warn('Error loading debug state:', error);
+    return false;
+  }
+};
 
 export function DebugProvider({ children }: { children: React.ReactNode }) {
   const [logs, setLogs] = useState<string[]>([]);
-  const { isDebugMode } = useDebugMode();
+  const [isDebugMode, setIsDebugMode] = useState(getInitialDebugState);
+
+  // Listen for URL parameter changes
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const debugParam = params.get('debug');
+      if (debugParam !== null) {
+        const debugValue = debugParam === '1';
+        setIsDebugMode(debugValue);
+        try {
+          localStorage.setItem(STORAGE_KEY, String(debugValue));
+        } catch (error) {
+          console.warn('Error saving debug state:', error);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, []);
 
   const addLog = useCallback(
     (message: string, type: 'info' | 'error' = 'info') => {
@@ -37,7 +85,7 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <DebugContext.Provider value={{ logs, addLog, clearLogs }}>
+    <DebugContext.Provider value={{ logs, addLog, clearLogs, isDebugMode }}>
       {children}
     </DebugContext.Provider>
   );
@@ -52,8 +100,7 @@ export function useDebug() {
 }
 
 export function DebugConsole() {
-  const { isDebugMode } = useDebugMode();
-  const { logs, clearLogs } = useDebug();
+  const { logs, clearLogs, isDebugMode } = useDebug();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!isDebugMode || logs.length === 0) {

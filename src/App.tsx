@@ -1,6 +1,5 @@
 import { Video } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DebugTooltip } from './components/debug';
 import { DebugConsole, useDebug } from './components/DebugConsole';
 
 function App() {
@@ -152,52 +151,42 @@ function App() {
 
           <div className="mb-8">
             <div className="flex items-center space-x-2">
-              <DebugTooltip content="Enter a YouTube URL (supports various formats)">
-                <input
-                  type="text"
-                  value={videoUrl}
-                  onChange={handleChange}
-                  onPaste={handlePaste}
-                  placeholder="Paste YouTube URL here (Ctrl+V/Cmd+V)"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  aria-label="YouTube URL"
-                />
-              </DebugTooltip>
-              <DebugTooltip content="Reset form and exit fullscreen">
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                >
-                  Clear
-                </button>
-              </DebugTooltip>
+              <input
+                type="text"
+                value={videoUrl}
+                onChange={handleChange}
+                onPaste={handlePaste}
+                placeholder="Paste YouTube URL here (Ctrl+V/Cmd+V)"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                aria-label="YouTube URL"
+              />
+              <button
+                type="button"
+                onClick={handleClear}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                Clear
+              </button>
             </div>
 
-            {error && (
-              <DebugTooltip content="Error details (hover)" position="bottom">
-                <p className="mt-2 text-red-600 text-sm">{error}</p>
-              </DebugTooltip>
-            )}
+            {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
           </div>
 
           {videoId && (
             <div className="space-y-4">
               <div className="relative">
-                <DebugTooltip content={`Video ID: ${videoId} (Fullscreen: ${fullscreenActivated ? 'Active' : 'Inactive'})`}>
-                  <div 
-                    ref={videoContainerRef}
-                    className="aspect-square w-full relative bg-black rounded-lg overflow-hidden"
-                  >
-                    <iframe
-                      src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=0`}
-                      title="YouTube video player"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full"
-                    />
-                  </div>
-                </DebugTooltip>
+                <div 
+                  ref={videoContainerRef}
+                  className="aspect-square w-full relative bg-black rounded-lg overflow-hidden"
+                >
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=0`}
+                    title="YouTube video player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                  />
+                </div>
               </div>
             </div>
           )}

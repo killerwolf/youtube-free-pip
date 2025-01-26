@@ -19,13 +19,14 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
     selectPlaylist,
     hasMorePlaylists,
     loadMorePlaylists,
+    retryLoading,
   } = useYouTube();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !loading && !error && playlists.length === 0) {
       loadPlaylists();
     }
-  }, [isAuthenticated, loadPlaylists]);
+  }, [isAuthenticated, loadPlaylists, loading, error, playlists.length]);
 
   if (!isAuthenticated) {
     return (
@@ -41,8 +42,29 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-600">{error}</p>
+      <div className="p-6 bg-white rounded-lg shadow">
+        <div className="text-red-600 mb-4">
+          <h3 className="font-semibold mb-2">Error Loading Playlists</h3>
+          <p className="text-sm">{error}</p>
+        </div>
+        <button
+          onClick={retryLoading}
+          className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          disabled={loading}
+        >
+          {loading ? 'Retrying...' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
+  if (loading && playlists.length === 0) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
+          <p className="text-gray-600">Loading your playlists...</p>
+        </div>
       </div>
     );
   }
@@ -55,9 +77,9 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
             <h2 className="text-xl font-semibold">{selectedPlaylist.snippet.title}</h2>
             <button
               onClick={() => selectPlaylist(null)}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
             >
-              Back to Playlists
+              ← Back
             </button>
           </div>
           <div className="space-y-2">
@@ -90,51 +112,52 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
       ) : (
         <>
           <h2 className="text-xl font-semibold">Your Playlists</h2>
-          <div className="grid grid-cols-1 gap-4">
-            {playlists.map((playlist) => (
-              <button
-                key={playlist.id}
-                onClick={() => selectPlaylist(playlist)}
-                className="flex gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-red-300 transition-all"
-              >
-                <div className="flex-shrink-0 w-32 aspect-video relative rounded overflow-hidden">
-                  <img
-                    src={
-                      playlist.snippet.thumbnails.medium?.url ||
-                      playlist.snippet.thumbnails.default.url
-                    }
-                    alt={playlist.snippet.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 px-1.5 py-0.5 rounded text-xs text-white">
-                    {playlist.contentDetails.itemCount}
+          {playlists.length === 0 ? (
+            <div className="p-4 bg-gray-50 rounded-lg text-center">
+              <p className="text-gray-600">No playlists found</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {playlists.map((playlist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => selectPlaylist(playlist)}
+                  className="flex gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-red-300 transition-all"
+                >
+                  <div className="flex-shrink-0 w-32 aspect-video relative rounded overflow-hidden">
+                    <img
+                      src={
+                        playlist.snippet.thumbnails.medium?.url ||
+                        playlist.snippet.thumbnails.default.url
+                      }
+                      alt={playlist.snippet.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 px-1.5 py-0.5 rounded text-xs text-white">
+                      {playlist.contentDetails.itemCount}
+                    </div>
                   </div>
-                </div>
-                <div className="flex-grow text-left">
-                  <h3 className="font-medium line-clamp-2">
-                    {playlist.snippet.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {playlist.snippet.channelTitle}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {loading && (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
+                  <div className="flex-grow text-left">
+                    <h3 className="font-medium line-clamp-2">
+                      {playlist.snippet.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {playlist.snippet.channelTitle}
+                    </p>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
 
-          {hasMorePlaylists && !loading && (
+          {hasMorePlaylists && (
             <div className="flex justify-center pt-4">
               <button
                 onClick={loadMorePlaylists}
-                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                disabled={loading}
               >
-                Load More
+                {loading ? 'Loading...' : 'Load More'}
               </button>
             </div>
           )}

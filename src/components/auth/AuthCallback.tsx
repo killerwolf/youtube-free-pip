@@ -17,7 +17,7 @@ if (!CLIENT_SECRET) {
 
 export function AuthCallback() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { updateAuthState } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,8 +70,8 @@ export function AuthCallback() {
 
         const data: TokenResponse = await tokenResponse.json();
         
-        // Update auth state with new tokens
-        await login();
+        // Update auth state with the tokens directly
+        updateAuthState(data);
         
         // Redirect back to main page
         navigate('/', { replace: true });
@@ -91,7 +91,7 @@ export function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, login]);
+  }, [navigate, updateAuthState]);
 
   if (error) {
     return (

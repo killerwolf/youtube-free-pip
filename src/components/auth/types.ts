@@ -11,6 +11,7 @@ export interface AuthContextType {
   login: () => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
+  updateAuthState: (tokenResponse: TokenResponse) => void;
 }
 
 export enum AuthError {

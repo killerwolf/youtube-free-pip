@@ -6,17 +6,19 @@ function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fullscreenActivated, setFullscreenActivated] = useState(false);
   const debug = useDebug();
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const isEnteringFullscreen = useRef(false);
 
   const enterFullscreen = useCallback(async () => {
-    if (!videoContainerRef.current || isEnteringFullscreen.current) return;
+    if (!videoContainerRef.current || isEnteringFullscreen.current || fullscreenActivated) return;
 
     try {
       isEnteringFullscreen.current = true;
       if (document.fullscreenEnabled) {
         await videoContainerRef.current.requestFullscreen();
+        setFullscreenActivated(true);
         if (import.meta.env.DEV) {
           debug.addLog('Entered fullscreen mode');
         }
@@ -36,15 +38,20 @@ function App() {
     } finally {
       isEnteringFullscreen.current = false;
     }
-  }, [debug]);
+  }, [debug, fullscreenActivated]);
 
   useEffect(() => {
-    if (videoId) {
+    if (videoId && !fullscreenActivated) {
       // Small delay to ensure iframe is loaded
       const timeoutId = setTimeout(enterFullscreen, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [videoId, enterFullscreen]);
+  }, [videoId, enterFullscreen, fullscreenActivated]);
+
+  // Reset fullscreen state when video changes
+  useEffect(() => {
+    setFullscreenActivated(false);
+  }, [videoId]);
 
   const handleClipboardText = (text: string) => {
     if (import.meta.env.DEV) {
@@ -91,6 +98,7 @@ function App() {
     setVideoUrl('');
     setVideoId('');
     setError(null);
+    setFullscreenActivated(false);
     if (import.meta.env.DEV) {
       debug.addLog('Form cleared');
     }

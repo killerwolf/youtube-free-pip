@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useYouTube } from './YouTubeContext';
 import { useAuth } from '../auth/AuthContext';
 import { GoogleAuthButton } from '../auth/GoogleAuthButton';
@@ -8,7 +8,7 @@ interface PlaylistSelectorProps {
 }
 
 export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const {
     playlists,
     selectedPlaylist,
@@ -22,11 +22,16 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
     retryLoading,
   } = useYouTube();
 
+  // Use ref to track initial load
+  const initialLoadDone = useRef(false);
+
   useEffect(() => {
-    if (isAuthenticated && !loading && !error && playlists.length === 0) {
+    // Only load playlists once when authenticated and not already loaded
+    if (isAuthenticated && !loading && !error && playlists.length === 0 && !initialLoadDone.current) {
+      initialLoadDone.current = true;
       loadPlaylists();
     }
-  }, [isAuthenticated, loadPlaylists, loading, error, playlists.length]);
+  }, [isAuthenticated]); // Only depend on isAuthenticated to prevent re-runs
 
   if (!isAuthenticated) {
     return (
@@ -43,8 +48,16 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
   if (error) {
     return (
       <div className="p-6 bg-white rounded-lg shadow">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold">Error Loading Playlists</h3>
+          <button
+            onClick={logout}
+            className="text-sm text-gray-600 hover:text-red-600"
+          >
+            Sign Out
+          </button>
+        </div>
         <div className="text-red-600 mb-4">
-          <h3 className="font-semibold mb-2">Error Loading Playlists</h3>
           <p className="text-sm">{error}</p>
         </div>
         <button
@@ -61,6 +74,15 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
   if (loading && playlists.length === 0) {
     return (
       <div className="p-6 bg-white rounded-lg shadow">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold">Loading Playlists</h3>
+          <button
+            onClick={logout}
+            className="text-sm text-gray-600 hover:text-red-600"
+          >
+            Sign Out
+          </button>
+        </div>
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
           <p className="text-gray-600">Loading your playlists...</p>
@@ -74,12 +96,20 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
       {selectedPlaylist ? (
         <>
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">{selectedPlaylist.snippet.title}</h2>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => selectPlaylist(null)}
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                ← Back
+              </button>
+              <h2 className="text-xl font-semibold">{selectedPlaylist.snippet.title}</h2>
+            </div>
             <button
-              onClick={() => selectPlaylist(null)}
-              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+              onClick={logout}
+              className="text-sm text-gray-600 hover:text-red-600"
             >
-              ← Back
+              Sign Out
             </button>
           </div>
           <div className="space-y-2">
@@ -111,7 +141,15 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
         </>
       ) : (
         <>
-          <h2 className="text-xl font-semibold">Your Playlists</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Your Playlists</h2>
+            <button
+              onClick={logout}
+              className="text-sm text-gray-600 hover:text-red-600"
+            >
+              Sign Out
+            </button>
+          </div>
           {playlists.length === 0 ? (
             <div className="p-4 bg-gray-50 rounded-lg text-center">
               <p className="text-gray-600">No playlists found</p>

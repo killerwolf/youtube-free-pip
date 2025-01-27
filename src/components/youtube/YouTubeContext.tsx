@@ -24,8 +24,6 @@ export function YouTubeProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
-  const [retryCount, setRetryCount] = useState(0);
-  const maxRetries = 3;
   
   const youtubeService = useYouTubeService();
 
@@ -38,24 +36,14 @@ export function YouTubeProvider({ children }: { children: React.ReactNode }) {
       const response = await youtubeService.getPlaylists();
       setPlaylists(response.items);
       setNextPageToken(response.nextPageToken);
-      setRetryCount(0); // Reset retry count on success
     } catch (err) {
       console.error('Error loading playlists:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load playlists';
       setError(errorMessage);
-      
-      // Only auto-retry if we haven't exceeded max retries
-      if (retryCount < maxRetries) {
-        setRetryCount(prev => prev + 1);
-        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
-        setTimeout(() => {
-          loadPlaylists();
-        }, delay);
-      }
     } finally {
       setLoading(false);
     }
-  }, [loading, youtubeService, retryCount]);
+  }, [loading, youtubeService]);
 
   const loadMorePlaylists = useCallback(async () => {
     if (!nextPageToken || loading) return;
@@ -101,7 +89,6 @@ export function YouTubeProvider({ children }: { children: React.ReactNode }) {
   }, [loadPlaylistItems]);
 
   const retryLoading = useCallback(async () => {
-    setRetryCount(0); // Reset retry count
     setError(null);
     await loadPlaylists();
   }, [loadPlaylists]);

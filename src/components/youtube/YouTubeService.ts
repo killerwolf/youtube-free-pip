@@ -14,9 +14,8 @@ export function useYouTubeService() {
 
   const handleResponse = async <T>(response: Response): Promise<T> => {
     if (response.status === 401) {
-      // Token expired, refresh and throw error to retry
       await refreshAccessToken();
-      throw new Error('Token expired, please retry');
+      throw new Error('Token expired, please try again');
     }
 
     if (!response.ok) {
@@ -66,24 +65,6 @@ export function useYouTubeService() {
     }
   };
 
-  const fetchWithRetry = async <T>(
-    endpoint: string,
-    params: Record<string, string> = {},
-    retries = 1
-  ): Promise<T> => {
-    try {
-      const response = await fetchWithAuth(endpoint, params);
-      return await handleResponse<T>(response);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Token expired, please retry' && retries > 0) {
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return fetchWithRetry<T>(endpoint, params, retries - 1);
-      }
-      throw error;
-    }
-  };
-
   const getPlaylists = async (pageToken?: string): Promise<YouTubeListResponse<YouTubePlaylist>> => {
     const params: Record<string, string> = {
       part: 'snippet,contentDetails',
@@ -95,7 +76,8 @@ export function useYouTubeService() {
       params.pageToken = pageToken;
     }
 
-    return fetchWithRetry<YouTubeListResponse<YouTubePlaylist>>('/playlists', params);
+    const response = await fetchWithAuth('/playlists', params);
+    return handleResponse<YouTubeListResponse<YouTubePlaylist>>(response);
   };
 
   const getPlaylistItems = async (
@@ -112,7 +94,8 @@ export function useYouTubeService() {
       params.pageToken = pageToken;
     }
 
-    return fetchWithRetry<YouTubeListResponse<YouTubePlaylistItem>>('/playlistItems', params);
+    const response = await fetchWithAuth('/playlistItems', params);
+    return handleResponse<YouTubeListResponse<YouTubePlaylistItem>>(response);
   };
 
   const getVideoDetails = async (videoId: string): Promise<YouTubeVideo> => {
@@ -121,13 +104,14 @@ export function useYouTubeService() {
       id: videoId,
     };
 
-    const response = await fetchWithRetry<YouTubeListResponse<YouTubeVideo>>('/videos', params);
+    const response = await fetchWithAuth('/videos', params);
+    const data = await handleResponse<YouTubeListResponse<YouTubeVideo>>(response);
 
-    if (!response.items.length) {
+    if (!data.items.length) {
       throw new Error(YouTubeError.VIDEO_NOT_FOUND);
     }
 
-    return response.items[0];
+    return data.items[0];
   };
 
   return {

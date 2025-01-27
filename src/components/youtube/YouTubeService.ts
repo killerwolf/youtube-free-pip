@@ -9,6 +9,12 @@ import { YouTubeError } from './types';
 
 const API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
+// Special playlist IDs for Watch Later and History
+const SPECIAL_PLAYLISTS = {
+  WATCH_LATER: 'WL',
+  HISTORY: 'HL',
+} as const;
+
 export function useYouTubeService() {
   const { accessToken, refreshAccessToken } = useAuth();
 
@@ -80,6 +86,18 @@ export function useYouTubeService() {
     return handleResponse<YouTubeListResponse<YouTubePlaylist>>(response);
   };
 
+  const getWatchLater = async (
+    pageToken?: string
+  ): Promise<YouTubeListResponse<YouTubePlaylistItem>> => {
+    return getPlaylistItems(SPECIAL_PLAYLISTS.WATCH_LATER, pageToken);
+  };
+
+  const getHistory = async (
+    pageToken?: string
+  ): Promise<YouTubeListResponse<YouTubePlaylistItem>> => {
+    return getPlaylistItems(SPECIAL_PLAYLISTS.HISTORY, pageToken);
+  };
+
   const getPlaylistItems = async (
     playlistId: string,
     pageToken?: string
@@ -118,5 +136,8 @@ export function useYouTubeService() {
     getPlaylists,
     getPlaylistItems,
     getVideoDetails,
+    getWatchLater,
+    getHistory,
+    SPECIAL_PLAYLISTS,
   };
 }

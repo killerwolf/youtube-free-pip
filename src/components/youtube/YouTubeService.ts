@@ -7,13 +7,12 @@ import type {
 } from './types';
 import { YouTubeError } from './types';
 
-const API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
+const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
+const DTP_API_BASE_URL = 'https://data-portability.googleapis.com/v1';
 
-// Special playlist IDs for Watch Later and History
-const SPECIAL_PLAYLISTS = {
-  WATCH_LATER: 'WL',
-  HISTORY: 'HL',
-} as const;
+interface FetchOptions extends RequestInit {
+  params?: Record<string, string>;
+}
 
 export function useYouTubeService() {
   const { accessToken, refreshAccessToken } = useAuth();
@@ -26,7 +25,7 @@ export function useYouTubeService() {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('YouTube API error:', errorData);
+      console.error('API error:', errorData);
       
       if (response.status === 403) {
         throw new Error(YouTubeError.QUOTA_EXCEEDED);
@@ -46,21 +45,29 @@ export function useYouTubeService() {
     return response.json();
   };
 
-  const fetchWithAuth = async (endpoint: string, params: Record<string, string> = {}) => {
+  const fetchWithAuth = async (
+    baseUrl: string,
+    endpoint: string,
+    options: FetchOptions = {}
+  ) => {
     if (!accessToken) {
       throw new Error('Not authenticated');
     }
 
-    const url = new URL(`${API_BASE_URL}${endpoint}`);
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
+    const url = new URL(`${baseUrl}${endpoint}`);
+    if (options.params) {
+      Object.entries(options.params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
+    }
 
     try {
       const response = await fetch(url.toString(), {
+        ...options,
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: 'application/json',
+          ...options.headers,
         },
       });
 
@@ -82,20 +89,94 @@ export function useYouTubeService() {
       params.pageToken = pageToken;
     }
 
-    const response = await fetchWithAuth('/playlists', params);
+    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/playlists', { params });
     return handleResponse<YouTubeListResponse<YouTubePlaylist>>(response);
   };
 
   const getWatchLater = async (
     pageToken?: string
   ): Promise<YouTubeListResponse<YouTubePlaylistItem>> => {
-    return getPlaylistItems(SPECIAL_PLAYLISTS.WATCH_LATER, pageToken);
+    // Get watch later using Data Portability API
+    const response = await fetchWithAuth(DTP_API_BASE_URL, '/watchLater', {
+      params: {
+        maxResults: '50',
+        ...(pageToken && { pageToken }),
+      },
+      headers: {
+        'X-Goog-Data-Source': 'youtube',
+      },
+    });
+
+    const data = await handleResponse<any>(response);
+    const items = data.items.map((video: any) => ({
+      kind: 'youtube#playlistItem',
+      etag: video.etag,
+      id: video.id,
+      snippet: {
+        title: video.snippet.title,
+        description: video.snippet.description,
+        thumbnails: video.snippet.thumbnails,
+        position: video.snippet.position || 0,
+        resourceId: {
+          kind: 'youtube#video',
+          videoId: video.id,
+        },
+      },
+    }));
+
+    return {
+      kind: 'youtube#playlistItemListResponse',
+      etag: data.etag,
+      nextPageToken: data.nextPageToken,
+      items,
+      pageInfo: {
+        totalResults: data.pageInfo.totalResults,
+        resultsPerPage: data.pageInfo.resultsPerPage,
+      },
+    };
   };
 
   const getHistory = async (
     pageToken?: string
   ): Promise<YouTubeListResponse<YouTubePlaylistItem>> => {
-    return getPlaylistItems(SPECIAL_PLAYLISTS.HISTORY, pageToken);
+    // Get watch history using Data Portability API
+    const response = await fetchWithAuth(DTP_API_BASE_URL, '/watchHistory', {
+      params: {
+        maxResults: '50',
+        ...(pageToken && { pageToken }),
+      },
+      headers: {
+        'X-Goog-Data-Source': 'youtube',
+      },
+    });
+
+    const data = await handleResponse<any>(response);
+    const items = data.items.map((video: any) => ({
+      kind: 'youtube#playlistItem',
+      etag: video.etag,
+      id: video.id,
+      snippet: {
+        title: video.snippet.title,
+        description: video.snippet.description,
+        thumbnails: video.snippet.thumbnails,
+        position: video.snippet.position || 0,
+        resourceId: {
+          kind: 'youtube#video',
+          videoId: video.id,
+        },
+      },
+    }));
+
+    return {
+      kind: 'youtube#playlistItemListResponse',
+      etag: data.etag,
+      nextPageToken: data.nextPageToken,
+      items,
+      pageInfo: {
+        totalResults: data.pageInfo.totalResults,
+        resultsPerPage: data.pageInfo.resultsPerPage,
+      },
+    };
   };
 
   const getPlaylistItems = async (
@@ -112,7 +193,7 @@ export function useYouTubeService() {
       params.pageToken = pageToken;
     }
 
-    const response = await fetchWithAuth('/playlistItems', params);
+    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/playlistItems', { params });
     return handleResponse<YouTubeListResponse<YouTubePlaylistItem>>(response);
   };
 
@@ -122,7 +203,7 @@ export function useYouTubeService() {
       id: videoId,
     };
 
-    const response = await fetchWithAuth('/videos', params);
+    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/videos', { params });
     const data = await handleResponse<YouTubeListResponse<YouTubeVideo>>(response);
 
     if (!data.items.length) {
@@ -138,6 +219,5 @@ export function useYouTubeService() {
     getVideoDetails,
     getWatchLater,
     getHistory,
-    SPECIAL_PLAYLISTS,
   };
 }

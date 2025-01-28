@@ -13,8 +13,9 @@ if (!CLIENT_SECRET) {
   throw new Error('VITE_GOOGLE_CLIENT_SECRET environment variable is not set');
 }
 
+// Only need youtube.readonly for playlists, watch later, and history
 const SCOPES = [
-  'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/youtube.readonly'
 ].join(' ');
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authUrl.searchParams.append('state', state);
       // Force consent to ensure we get a refresh token
       authUrl.searchParams.append('prompt', 'consent');
-      // Include YouTube.readonly scope
+      // Include granted scopes
       authUrl.searchParams.append('include_granted_scopes', 'true');
 
       // Redirect to Google OAuth

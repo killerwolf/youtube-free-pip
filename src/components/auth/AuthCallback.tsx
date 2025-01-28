@@ -29,23 +29,24 @@ export function AuthCallback() {
         const state = params.get('state');
         const error = params.get('error');
 
-        // Check for errors in the callback
+        // Only set error if there's an actual error parameter
         if (error) {
           throw new Error(`Google OAuth error: ${error}`);
         }
 
-        // Validate state to prevent CSRF
+        // Verify state parameter to prevent CSRF
         const storedState = sessionStorage.getItem('oauth_state');
         sessionStorage.removeItem('oauth_state');
+
         if (!state || state !== storedState) {
           throw new Error(AuthError.AUTH_FAILED);
         }
 
         if (!code) {
-          throw new Error('No authorization code present in the callback');
+          throw new Error(AuthError.AUTH_FAILED);
         }
 
-        // Exchange code for tokens
+        // Exchange code for tokens directly with Google
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: {
@@ -53,34 +54,29 @@ export function AuthCallback() {
           },
           body: new URLSearchParams({
             code,
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+            client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET,
             redirect_uri: `${window.location.origin}/auth/callback`,
             grant_type: 'authorization_code',
           }),
         });
 
         if (!tokenResponse.ok) {
-          const errorData = await tokenResponse.json();
-          console.error('Token exchange error:', errorData);
-          throw new Error(
-            `Token exchange failed: ${errorData.error || tokenResponse.statusText}`
-          );
+          const errorData = await tokenResponse.json().catch(() => ({}));
+          throw new Error(errorData.error_description || AuthError.AUTH_FAILED);
         }
 
-        const data: TokenResponse = await tokenResponse.json();
-        
-        // Update auth state with the tokens directly
-        updateAuthState(data);
-        
-        // Redirect back to main page
+        const tokens: TokenResponse = await tokenResponse.json();
+        updateAuthState(tokens);
+
+        // On success, redirect immediately
         navigate('/', { replace: true });
       } catch (error) {
         console.error('Auth callback error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+        const errorMessage = error instanceof Error ? error.message : AuthError.AUTH_FAILED;
         setError(errorMessage);
         
-        // After 5 seconds, redirect to home with error state
+        // Only show error state for actual errors
         setTimeout(() => {
           navigate('/', { 
             replace: true,
@@ -93,6 +89,7 @@ export function AuthCallback() {
     handleCallback();
   }, [navigate, updateAuthState]);
 
+  // Only show error screen for actual errors
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -122,16 +119,19 @@ export function AuthCallback() {
     );
   }
 
+  // Show a more positive loading state
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md">
-        <div className="flex items-center justify-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500" />
-          <h2 className="text-xl font-semibold">Completing Sign In...</h2>
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500" />
+            <h2 className="text-xl font-semibold">Completing Sign In...</h2>
+          </div>
+          <p className="text-gray-600 text-center">
+            Almost there! Setting up your account...
+          </p>
         </div>
-        <p className="text-gray-600 mt-4 text-center">
-          Please wait while we complete your authentication
-        </p>
       </div>
     </div>
   );

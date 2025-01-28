@@ -143,3 +143,15 @@ export interface YouTubeActivity {
     videoId: string;
   };
 }
+
+export interface YouTubeContextType {
+  playlists: YouTubePlaylist[];
+  selectedPlaylist: YouTubePlaylist | null;
+  playlistItems: YouTubePlaylistItem[];
+  loading: boolean;
+  error: string | null;
+  loadPlaylists: () => Promise<void>;
+  selectPlaylist: (playlist: YouTubePlaylist | null) => Promise<void>;
+  loadMore: () => Promise<void>;
+  hasMoreItems: boolean;
+}

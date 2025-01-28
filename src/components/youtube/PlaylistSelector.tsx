@@ -8,25 +8,17 @@ interface PlaylistSelectorProps {
 }
 
 export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
   const {
     playlists,
-    watchLater,
-    history,
     selectedPlaylist,
-    selectedListType,
     playlistItems,
     loading,
     error,
     loadPlaylists,
     selectPlaylist,
-    selectWatchLater,
-    selectHistory,
-    hasMorePlaylists,
-    hasMoreWatchLater,
-    hasMoreHistory,
+    hasMoreItems,
     loadMore,
-    retryLoading,
   } = useYouTube();
 
   // Use ref to track initial load
@@ -38,7 +30,7 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
       initialLoadDone.current = true;
       loadPlaylists();
     }
-  }, [isAuthenticated]); // Only depend on isAuthenticated to prevent re-runs
+  }, [isAuthenticated, loading, error, loadPlaylists]);
 
   if (!isAuthenticated) {
     return (
@@ -57,38 +49,19 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
       <div className="p-6 bg-white rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold">Error Loading Content</h3>
-          <button
-            onClick={logout}
-            className="text-sm text-gray-600 hover:text-red-600"
-          >
-            Sign Out
-          </button>
         </div>
         <div className="text-red-600 mb-4">
           <p className="text-sm">{error}</p>
         </div>
-        <button
-          onClick={retryLoading}
-          className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          disabled={loading}
-        >
-          {loading ? 'Retrying...' : 'Retry'}
-        </button>
       </div>
     );
   }
 
-  if (loading && !playlistItems.length && !selectedListType) {
+  if (loading && !playlistItems.length) {
     return (
       <div className="p-6 bg-white rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold">Loading Content</h3>
-          <button
-            onClick={logout}
-            className="text-sm text-gray-600 hover:text-red-600"
-          >
-            Sign Out
-          </button>
         </div>
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
@@ -98,145 +71,74 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
     );
   }
 
-  const hasMore = selectedListType === 'watchLater' 
-    ? hasMoreWatchLater 
-    : selectedListType === 'history'
-      ? hasMoreHistory
-      : hasMorePlaylists;
-
   return (
-    <div className="space-y-4">
-      {selectedListType ? (
-        <>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => selectPlaylist(null)}
-                className="text-sm text-gray-600 hover:text-gray-800"
-              >
-                ← Back
-              </button>
-              <h2 className="text-xl font-semibold">
-                {selectedListType === 'watchLater' 
-                  ? 'Watch Later' 
-                  : selectedListType === 'history'
-                    ? 'History'
-                    : selectedPlaylist?.snippet.title}
-              </h2>
-            </div>
+    <div>
+      {selectedPlaylist ? (
+        <div>
+          <div className="flex items-center gap-4 mb-4">
             <button
-              onClick={logout}
-              className="text-sm text-gray-600 hover:text-red-600"
+              onClick={() => selectPlaylist(null)}
+              className="text-sm text-gray-600 hover:text-gray-800"
             >
-              Sign Out
+              ← Back
             </button>
+            <h2 className="text-lg font-semibold">{selectedPlaylist.snippet.title}</h2>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {playlistItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => onVideoSelect(item.snippet.resourceId.videoId)}
-                className="w-full flex gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="group aspect-video relative rounded-lg overflow-hidden hover:ring-2 hover:ring-red-500 focus:ring-2 focus:ring-red-500"
               >
-                <div className="flex-shrink-0 w-32 aspect-video relative rounded overflow-hidden">
-                  <img
-                    src={
-                      item.snippet.thumbnails.medium?.url ||
-                      item.snippet.thumbnails.default.url
-                    }
-                    alt={item.snippet.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-grow text-left">
-                  <h3 className="font-medium line-clamp-2">{item.snippet.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Position: {item.snippet.position + 1}
-                  </p>
+                <img
+                  src={item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default.url}
+                  alt={item.snippet.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity" />
+                <div className="absolute inset-0 p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <p className="text-sm font-medium line-clamp-2">{item.snippet.title}</p>
                 </div>
               </button>
             ))}
           </div>
-        </>
+        </div>
       ) : (
-        <>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">YouTube Lists</h2>
-            <button
-              onClick={logout}
-              className="text-sm text-gray-600 hover:text-red-600"
-            >
-              Sign Out
-            </button>
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Your Playlists</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {playlists.map((playlist) => (
+              <button
+                key={playlist.id}
+                onClick={() => selectPlaylist(playlist)}
+                className="group aspect-video relative rounded-lg overflow-hidden hover:ring-2 hover:ring-red-500 focus:ring-2 focus:ring-red-500"
+              >
+                <img
+                  src={playlist.snippet.thumbnails.medium?.url || playlist.snippet.thumbnails.default.url}
+                  alt={playlist.snippet.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-60 transition-opacity">
+                  <div className="absolute inset-0 p-3 text-white">
+                    <p className="font-medium line-clamp-2">{playlist.snippet.title}</p>
+                    <p className="text-sm mt-1 opacity-80">{playlist.contentDetails.itemCount} videos</p>
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
-
-          <div className="space-y-4">
-            <button
-              onClick={selectWatchLater}
-              className="w-full flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-red-300 transition-all"
-            >
-              <div className="flex-grow text-left">
-                <h3 className="font-medium">Watch Later</h3>
-                <p className="text-sm text-gray-500">{watchLater.length} videos</p>
-              </div>
-            </button>
-
-            <button
-              onClick={selectHistory}
-              className="w-full flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-red-300 transition-all"
-            >
-              <div className="flex-grow text-left">
-                <h3 className="font-medium">History</h3>
-                <p className="text-sm text-gray-500">{history.length} videos</p>
-              </div>
-            </button>
-
-            <div className="pt-4 border-t border-gray-200">
-              <h3 className="text-lg font-medium mb-4">Your Playlists</h3>
-              <div className="grid grid-cols-1 gap-4">
-                {playlists.map((playlist) => (
-                  <button
-                    key={playlist.id}
-                    onClick={() => selectPlaylist(playlist)}
-                    className="flex gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-red-300 transition-all"
-                  >
-                    <div className="flex-shrink-0 w-32 aspect-video relative rounded overflow-hidden">
-                      <img
-                        src={
-                          playlist.snippet.thumbnails.medium?.url ||
-                          playlist.snippet.thumbnails.default.url
-                        }
-                        alt={playlist.snippet.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                      <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 px-1.5 py-0.5 rounded text-xs text-white">
-                        {playlist.contentDetails.itemCount}
-                      </div>
-                    </div>
-                    <div className="flex-grow text-left">
-                      <h3 className="font-medium line-clamp-2">
-                        {playlist.snippet.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {playlist.snippet.channelTitle}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
-      {hasMore && (
-        <div className="flex justify-center pt-4">
+      {hasMoreItems && (
+        <div className="mt-4 text-center">
           <button
             onClick={loadMore}
-            className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? 'Loading...' : 'Load More'}
+            {loading ? 'Loading...' : 'Show more'}
           </button>
         </div>
       )}

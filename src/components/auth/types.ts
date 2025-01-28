@@ -12,11 +12,14 @@ export interface AuthContextType {
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
   updateAuthState: (tokenResponse: TokenResponse) => void;
+  handleCallback: () => Promise<void>;
 }
 
 export enum AuthError {
   AUTH_FAILED = 'Authentication failed',
-  TOKEN_EXPIRED = 'Token expired',
+  TOKEN_EXPIRED = 'Token has expired',
+  INVALID_STATE = 'Invalid state parameter',
+  NO_CODE = 'No authorization code received',
   NETWORK_ERROR = 'Network error',
   USER_CANCELLED = 'User cancelled authentication',
 }
@@ -30,4 +33,4 @@ export interface TokenResponse {
 }
 
 // Storage keys
-export const AUTH_STORAGE_KEY = 'youtube-pip-auth';
+export const AUTH_STORAGE_KEY = 'auth_state';

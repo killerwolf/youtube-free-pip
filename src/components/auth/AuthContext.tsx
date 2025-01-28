@@ -159,6 +159,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timeoutId);
   }, [authState.isAuthenticated, authState.expiresAt, refreshAccessToken]);
 
+  const handleCallback = useCallback(async () => {
+    try {
+      addLog('Processing OAuth callback', 'info', 'Auth');
+      
+      // Get URL parameters
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      
+      // Verify state to prevent CSRF
+      const savedState = sessionStorage.getItem('oauth_state');
+      sessionStorage.removeItem('oauth_state');
+      
+      if (!state || state !== savedState) {
+        throw new Error(AuthError.INVALID_STATE);
+      }
+      
+      if (!code) {
+        throw new Error(AuthError.NO_CODE);
+      }
+
+      // Exchange code for tokens
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+          code,
+          grant_type: 'authorization_code',
+          redirect_uri: `${window.location.origin}/auth/callback`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Token exchange failed: ${errorData.error || response.statusText}`);
+      }
+
+      const data: TokenResponse = await response.json();
+      updateAuthState(data);
+      addLog('Successfully processed OAuth callback', 'info', 'Auth');
+    } catch (error) {
+      addLog(`Callback error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', 'Auth');
+      throw error;
+    }
+  }, [updateAuthState, addLog]);
+
   const value = {
     isAuthenticated: authState.isAuthenticated,
     accessToken: authState.accessToken,
@@ -166,6 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     refreshAccessToken,
     updateAuthState,
+    handleCallback,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

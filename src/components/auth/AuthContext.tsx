@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import type { AuthContextType, AuthState, TokenResponse } from './types';
 import { AUTH_STORAGE_KEY, AuthError } from './types';
+import { useDebug } from '../DebugConsole';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
@@ -51,8 +52,10 @@ const saveAuthState = (state: AuthState) => {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(loadStoredAuth);
+  const { addLog } = useDebug();
 
   const updateAuthState = useCallback((tokenResponse: TokenResponse) => {
+    addLog('Updating auth state with new token', 'info', 'Auth');
     const newState: AuthState = {
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token || authState.refreshToken,
@@ -61,10 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setAuthState(newState);
     saveAuthState(newState);
-  }, [authState.refreshToken]);
+  }, [authState.refreshToken, addLog]);
 
   const login = useCallback(async () => {
     try {
+      addLog('Initiating login process', 'info', 'Auth');
       // Create and store state parameter to prevent CSRF
       const state = Math.random().toString(36).substring(7);
       sessionStorage.setItem('oauth_state', state);
@@ -77,20 +81,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authUrl.searchParams.append('scope', SCOPES);
       authUrl.searchParams.append('access_type', 'offline');
       authUrl.searchParams.append('state', state);
-      // Force consent to ensure we get a refresh token
       authUrl.searchParams.append('prompt', 'consent');
-      // Include granted scopes
       authUrl.searchParams.append('include_granted_scopes', 'true');
 
-      // Redirect to Google OAuth
+      addLog('Redirecting to Google OAuth', 'info', 'Auth');
       window.location.href = authUrl.toString();
     } catch (error) {
-      console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addLog(`Login error: ${errorMessage}`, 'error', 'Auth');
       throw new Error(AuthError.AUTH_FAILED);
     }
-  }, []);
+  }, [addLog]);
 
   const logout = useCallback(() => {
+    addLog('User logged out', 'info', 'Auth');
     setAuthState({
       accessToken: null,
       refreshToken: null,
@@ -98,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: false,
     });
     localStorage.removeItem(AUTH_STORAGE_KEY);
-  }, []);
+  }, [addLog]);
 
   const refreshAccessToken = useCallback(async () => {
     if (!authState.refreshToken) {

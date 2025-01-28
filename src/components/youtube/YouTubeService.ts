@@ -6,6 +6,7 @@ import type {
   YouTubeListResponse,
 } from './types';
 import { YouTubeError } from './types';
+import { useDebug } from '../DebugConsole';
 
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 const DTP_API_BASE_URL = 'https://data-portability.googleapis.com/v1';
@@ -16,16 +17,22 @@ interface FetchOptions extends RequestInit {
 
 export function useYouTubeService() {
   const { accessToken, refreshAccessToken } = useAuth();
+  const { addLog } = useDebug();
 
   const handleResponse = async <T>(response: Response): Promise<T> => {
     if (response.status === 401) {
+      addLog('Token expired, refreshing...', 'warn', 'YouTube');
       await refreshAccessToken();
       throw new Error('Token expired, please try again');
     }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('API error:', errorData);
+      const errorMessage = errorData.error?.message || 
+        errorData.error?.error_description || 
+        YouTubeError.API_ERROR;
+      
+      addLog(`API error: ${errorMessage}`, 'error', 'YouTube');
       
       if (response.status === 403) {
         throw new Error(YouTubeError.QUOTA_EXCEEDED);
@@ -35,11 +42,7 @@ export function useYouTubeService() {
         throw new Error(YouTubeError.PLAYLIST_NOT_FOUND);
       }
       
-      throw new Error(
-        errorData.error?.message || 
-        errorData.error?.error_description || 
-        YouTubeError.API_ERROR
-      );
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -51,6 +54,7 @@ export function useYouTubeService() {
     options: FetchOptions = {}
   ) => {
     if (!accessToken) {
+      addLog('Attempted API call without auth token', 'error', 'YouTube');
       throw new Error('Not authenticated');
     }
 
@@ -60,6 +64,8 @@ export function useYouTubeService() {
         url.searchParams.append(key, value);
       });
     }
+
+    addLog(`Fetching: ${endpoint}`, 'debug', 'YouTube');
 
     try {
       const response = await fetch(url.toString(), {
@@ -73,7 +79,7 @@ export function useYouTubeService() {
 
       return response;
     } catch (error) {
-      console.error('API request failed:', error);
+      addLog(`Network error: ${error}`, 'error', 'YouTube');
       throw new Error(YouTubeError.NETWORK_ERROR);
     }
   };

@@ -19,8 +19,6 @@ export function PlaylistSelector({ onVideoSelect }: PlaylistSelectorProps) {
     loading,
     error,
     loadPlaylists,
-    loadWatchLater,
-    loadHistory,
     selectPlaylist,
     selectWatchLater,
     selectHistory,

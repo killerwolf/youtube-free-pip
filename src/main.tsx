@@ -19,13 +19,13 @@ if (!import.meta.env.VITE_GOOGLE_API_KEY) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <YouTubeProvider>
-          <DebugProvider>
+      <DebugProvider>
+        <AuthProvider>
+          <YouTubeProvider>
             <App />
-          </DebugProvider>
-        </YouTubeProvider>
-      </AuthProvider>
+          </YouTubeProvider>
+        </AuthProvider>
+      </DebugProvider>
     </BrowserRouter>
   </StrictMode>
 );

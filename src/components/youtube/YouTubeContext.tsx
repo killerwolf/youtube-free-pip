@@ -1,23 +1,14 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { YouTubePlaylist, YouTubePlaylistItem } from './types';
+import type { YouTubePlaylist, YouTubePlaylistItem, YouTubeContextType } from './types';
 import { useYouTubeService } from './YouTubeService';
-
-interface YouTubeContextType {
-  playlists: YouTubePlaylist[];
-  selectedPlaylist: YouTubePlaylist | null;
-  playlistItems: YouTubePlaylistItem[];
-  loading: boolean;
-  error: string | null;
-  loadPlaylists: () => Promise<void>;
-  selectPlaylist: (playlist: YouTubePlaylist | null) => Promise<void>;
-  loadMore: () => Promise<void>;
-  hasMoreItems: boolean;
-}
-
+import { useAuth } from '../auth/AuthContext';
+import { useDebug } from '../DebugConsole';
 
 const YouTubeContext = createContext<YouTubeContextType | null>(null);
 
 export function YouTubeProvider({ children }: { children: React.ReactNode }) {
+  const { accessToken } = useAuth();
+  const { addLog } = useDebug();
   const [playlists, setPlaylists] = useState<YouTubePlaylist[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [playlistItems, setPlaylistItems] = useState<YouTubePlaylistItem[]>([]);
@@ -92,7 +83,7 @@ export function YouTubeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loading, selectedPlaylist, nextPageTokens.items, youtubeService]);
 
-  const value = {
+  const value: YouTubeContextType = {
     playlists,
     selectedPlaylist,
     playlistItems,

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useDebug } from '../DebugConsole';
@@ -7,8 +7,12 @@ export function AuthCallback() {
   const navigate = useNavigate();
   const { handleCallback } = useAuth();
   const { addLog } = useDebug();
+  const processedRef = useRef(false);
 
   useEffect(() => {
+    if (processedRef.current) return;
+    processedRef.current = true;
+
     handleCallback()
       .then(() => {
         addLog('Auth callback successful', 'info', 'Auth');

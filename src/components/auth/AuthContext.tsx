@@ -69,11 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async () => {
     try {
       addLog('Initiating login process', 'info', 'Auth');
-      // Create and store state parameter to prevent CSRF
-      const state = Math.random().toString(36).substring(7);
-      sessionStorage.setItem('oauth_state', state);
+      
+      // Générer un state plus robuste
+      const state = crypto.randomUUID();
+      
+      // Stocker le state avec un timestamp
+      const stateData = {
+        value: state,
+        timestamp: Date.now(),
+      };
+      sessionStorage.setItem('oauth_state', JSON.stringify(stateData));
 
-      // Construct OAuth URL
+      // Construire l'URL OAuth
       const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authUrl.searchParams.append('client_id', CLIENT_ID);
       authUrl.searchParams.append('redirect_uri', `${window.location.origin}/auth/callback`);
@@ -82,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authUrl.searchParams.append('access_type', 'offline');
       authUrl.searchParams.append('state', state);
       authUrl.searchParams.append('prompt', 'consent');
-      authUrl.searchParams.append('include_granted_scopes', 'true');
 
       addLog('Redirecting to Google OAuth', 'info', 'Auth');
       window.location.href = authUrl.toString();
@@ -169,10 +175,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const state = params.get('state');
       
       // Verify state to prevent CSRF
-      const savedState = sessionStorage.getItem('oauth_state');
+      const storedStateData = sessionStorage.getItem('oauth_state');
       sessionStorage.removeItem('oauth_state');
       
-      if (!state || state !== savedState) {
+      if (!storedStateData || !state) {
+        throw new Error(AuthError.INVALID_STATE);
+      }
+
+      const { value: storedState, timestamp } = JSON.parse(storedStateData);
+      
+      // Vérifier si le state est expiré (15 minutes max)
+      if (Date.now() - timestamp > 15 * 60 * 1000) {
+        throw new Error(AuthError.STATE_EXPIRED);
+      }
+
+      if (state !== storedState) {
         throw new Error(AuthError.INVALID_STATE);
       }
       

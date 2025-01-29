@@ -19,6 +19,7 @@ export enum AuthError {
   AUTH_FAILED = 'Authentication failed',
   TOKEN_EXPIRED = 'Token has expired',
   INVALID_STATE = 'Invalid state parameter',
+  STATE_EXPIRED = 'Authentication session expired',
   NO_CODE = 'No authorization code received',
   NETWORK_ERROR = 'Network error',
   USER_CANCELLED = 'User cancelled authentication',

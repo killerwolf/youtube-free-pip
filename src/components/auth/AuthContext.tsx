@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import type { AuthContextType, AuthState, TokenResponse } from './types';
 import { AUTH_STORAGE_KEY, AuthError } from './types';
 import { useDebug } from '../DebugConsole';
@@ -15,9 +21,7 @@ if (!CLIENT_SECRET) {
 }
 
 // Only need youtube.readonly for playlists, watch later, and history
-const SCOPES = [
-  'https://www.googleapis.com/auth/youtube.readonly'
-].join(' ');
+const SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'].join(' ');
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -54,25 +58,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(loadStoredAuth);
   const { addLog } = useDebug();
 
-  const updateAuthState = useCallback((tokenResponse: TokenResponse) => {
-    addLog('Updating auth state with new token', 'info', 'Auth');
-    const newState: AuthState = {
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token || authState.refreshToken,
-      expiresAt: Date.now() + tokenResponse.expires_in * 1000,
-      isAuthenticated: true,
-    };
-    setAuthState(newState);
-    saveAuthState(newState);
-  }, [authState.refreshToken, addLog]);
+  const updateAuthState = useCallback(
+    (tokenResponse: TokenResponse) => {
+      addLog('Updating auth state with new token', 'info', 'Auth');
+      const newState: AuthState = {
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token || authState.refreshToken,
+        expiresAt: Date.now() + tokenResponse.expires_in * 1000,
+        isAuthenticated: true,
+      };
+      setAuthState(newState);
+      saveAuthState(newState);
+    },
+    [authState.refreshToken, addLog]
+  );
 
   const login = useCallback(async () => {
     try {
       addLog('Initiating login process', 'info', 'Auth');
-      
+
       // Générer un state plus robuste
       const state = crypto.randomUUID();
-      
+
       // Stocker le state avec un timestamp
       const stateData = {
         value: state,
@@ -83,7 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Construire l'URL OAuth
       const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authUrl.searchParams.append('client_id', CLIENT_ID);
-      authUrl.searchParams.append('redirect_uri', `${window.location.origin}/auth/callback`);
+      authUrl.searchParams.append(
+        'redirect_uri',
+        `${window.location.origin}/auth/callback`
+      );
       authUrl.searchParams.append('response_type', 'code');
       authUrl.searchParams.append('scope', SCOPES);
       authUrl.searchParams.append('access_type', 'offline');
@@ -93,7 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       addLog('Redirecting to Google OAuth', 'info', 'Auth');
       window.location.href = authUrl.toString();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       addLog(`Login error: ${errorMessage}`, 'error', 'Auth');
       throw new Error(AuthError.AUTH_FAILED);
     }
@@ -168,22 +179,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleCallback = useCallback(async () => {
     try {
       addLog('Processing OAuth callback', 'info', 'Auth');
-      
+
       // Get URL parameters
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
       const state = params.get('state');
-      
+
       // Verify state to prevent CSRF
       const storedStateData = sessionStorage.getItem('oauth_state');
       sessionStorage.removeItem('oauth_state');
-      
+
       if (!storedStateData || !state) {
         throw new Error(AuthError.INVALID_STATE);
       }
 
       const { value: storedState, timestamp } = JSON.parse(storedStateData);
-      
+
       // Vérifier si le state est expiré (15 minutes max)
       if (Date.now() - timestamp > 15 * 60 * 1000) {
         throw new Error(AuthError.STATE_EXPIRED);
@@ -192,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (state !== storedState) {
         throw new Error(AuthError.INVALID_STATE);
       }
-      
+
       if (!code) {
         throw new Error(AuthError.NO_CODE);
       }
@@ -214,14 +225,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Token exchange failed: ${errorData.error || response.statusText}`);
+        throw new Error(
+          `Token exchange failed: ${errorData.error || response.statusText}`
+        );
       }
 
       const data: TokenResponse = await response.json();
       updateAuthState(data);
       addLog('Successfully processed OAuth callback', 'info', 'Auth');
     } catch (error) {
-      addLog(`Callback error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', 'Auth');
+      addLog(
+        `Callback error: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        'error',
+        'Auth'
+      );
       throw error;
     }
   }, [updateAuthState, addLog]);

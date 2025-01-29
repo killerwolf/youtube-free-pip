@@ -19,7 +19,13 @@ export function AuthCallback() {
         navigate('/', { replace: true });
       })
       .catch((error) => {
-        addLog(`Auth callback failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', 'Auth');
+        addLog(
+          `Auth callback failed: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+          'error',
+          'Auth'
+        );
         navigate('/', { replace: true });
       });
   }, [handleCallback, navigate, addLog]);

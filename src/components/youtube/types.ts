@@ -99,7 +99,14 @@ export interface YouTubeActivity {
     title: string;
     description: string;
     thumbnails: YouTubeThumbnails;
-    type: 'upload' | 'playlist' | 'playlistItem' | 'like' | 'favorite' | 'watchLater' | 'watch';
+    type:
+      | 'upload'
+      | 'playlist'
+      | 'playlistItem'
+      | 'like'
+      | 'favorite'
+      | 'watchLater'
+      | 'watch';
     groupId: string;
     channelId: string;
     channelTitle: string;

@@ -23,7 +23,7 @@ function AppContent() {
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setVideoUrl(url);
-    
+
     const videoId = extractYouTubeVideoId(url);
     if (videoId) {
       handleVideoSelect(videoId);

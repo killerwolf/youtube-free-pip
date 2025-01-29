@@ -20,4 +20,4 @@ export function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
       </button>
     </div>
   );
-} 
+}

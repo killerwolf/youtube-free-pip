@@ -28,20 +28,21 @@ export function useYouTubeService() {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error?.message || 
-        errorData.error?.error_description || 
+      const errorMessage =
+        errorData.error?.message ||
+        errorData.error?.error_description ||
         YouTubeError.API_ERROR;
-      
+
       addLog(`API error: ${errorMessage}`, 'error', 'YouTube');
-      
+
       if (response.status === 403) {
         throw new Error(YouTubeError.QUOTA_EXCEEDED);
       }
-      
+
       if (response.status === 404) {
         throw new Error(YouTubeError.PLAYLIST_NOT_FOUND);
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -84,7 +85,9 @@ export function useYouTubeService() {
     }
   };
 
-  const getPlaylists = async (pageToken?: string): Promise<YouTubeListResponse<YouTubePlaylist>> => {
+  const getPlaylists = async (
+    pageToken?: string
+  ): Promise<YouTubeListResponse<YouTubePlaylist>> => {
     const params: Record<string, string> = {
       part: 'snippet,contentDetails',
       mine: 'true',
@@ -95,7 +98,9 @@ export function useYouTubeService() {
       params.pageToken = pageToken;
     }
 
-    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/playlists', { params });
+    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/playlists', {
+      params,
+    });
     return handleResponse<YouTubeListResponse<YouTubePlaylist>>(response);
   };
 
@@ -199,7 +204,11 @@ export function useYouTubeService() {
       params.pageToken = pageToken;
     }
 
-    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/playlistItems', { params });
+    const response = await fetchWithAuth(
+      YOUTUBE_API_BASE_URL,
+      '/playlistItems',
+      { params }
+    );
     return handleResponse<YouTubeListResponse<YouTubePlaylistItem>>(response);
   };
 
@@ -209,8 +218,11 @@ export function useYouTubeService() {
       id: videoId,
     };
 
-    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/videos', { params });
-    const data = await handleResponse<YouTubeListResponse<YouTubeVideo>>(response);
+    const response = await fetchWithAuth(YOUTUBE_API_BASE_URL, '/videos', {
+      params,
+    });
+    const data =
+      await handleResponse<YouTubeListResponse<YouTubeVideo>>(response);
 
     if (!data.items.length) {
       throw new Error(YouTubeError.VIDEO_NOT_FOUND);

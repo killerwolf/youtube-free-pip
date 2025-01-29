@@ -1,5 +1,12 @@
 import type React from 'react';
-import { createContext, useCallback, useContext, useState, useEffect, useMemo } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+} from 'react';
 import { X, MessageCircle, Search, Trash2, Filter } from 'lucide-react';
 
 interface LogEntry {
@@ -56,30 +63,36 @@ function DebugProvider({ children }: { children: React.ReactNode }) {
   const [isDebugMode, setIsDebugMode] = useState(getInitialDebugState);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
-  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info', source?: string) => {
-    if (!isDebugMode) return;
+  const addLog = useCallback(
+    (message: string, type: LogEntry['type'] = 'info', source?: string) => {
+      if (!isDebugMode) return;
 
-    setLogs(prev => {
-      const newLogs = [
-        {
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          message,
-          type,
-          source,
-        },
-        ...prev,
-      ].slice(0, MAX_LOGS);
-      
-      try {
-        localStorage.setItem('debug_logs', JSON.stringify(newLogs.slice(0, 100)));
-      } catch (error) {
-        console.warn('Failed to save debug logs:', error);
-      }
-      
-      return newLogs;
-    });
-  }, [isDebugMode]);
+      setLogs((prev) => {
+        const newLogs = [
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            message,
+            type,
+            source,
+          },
+          ...prev,
+        ].slice(0, MAX_LOGS);
+
+        try {
+          localStorage.setItem(
+            'debug_logs',
+            JSON.stringify(newLogs.slice(0, 100))
+          );
+        } catch (error) {
+          console.warn('Failed to save debug logs:', error);
+        }
+
+        return newLogs;
+      });
+    },
+    [isDebugMode]
+  );
 
   const clearLogs = useCallback(() => {
     setLogs([]);
@@ -87,7 +100,7 @@ function DebugProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleDebugMode = useCallback(() => {
-    setIsDebugMode(prev => {
+    setIsDebugMode((prev) => {
       const newValue = !prev;
       try {
         localStorage.setItem(STORAGE_KEY, String(newValue));
@@ -118,7 +131,9 @@ function DebugProvider({ children }: { children: React.ReactNode }) {
     toggleDebugMode,
   };
 
-  return <DebugContext.Provider value={value}>{children}</DebugContext.Provider>;
+  return (
+    <DebugContext.Provider value={value}>{children}</DebugContext.Provider>
+  );
 }
 
 function DebugConsole() {
@@ -130,11 +145,12 @@ function DebugConsole() {
   );
 
   const filteredLogs = useMemo(() => {
-    return contextLogs.filter(log => 
-      activeTypes.has(log.type) &&
-      (filter === '' || 
-       log.message.toLowerCase().includes(filter.toLowerCase()) ||
-       log.source?.toLowerCase().includes(filter.toLowerCase()))
+    return contextLogs.filter(
+      (log) =>
+        activeTypes.has(log.type) &&
+        (filter === '' ||
+          log.message.toLowerCase().includes(filter.toLowerCase()) ||
+          log.source?.toLowerCase().includes(filter.toLowerCase()))
     );
   }, [contextLogs, filter, activeTypes]);
 
@@ -143,12 +159,12 @@ function DebugConsole() {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <button
-        onClick={() => setIsConsoleVisible(prev => !prev)}
+        onClick={() => setIsConsoleVisible((prev) => !prev)}
         className="p-2 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
       >
         <MessageCircle size={24} />
       </button>
-      
+
       {isConsoleVisible && (
         <div className="fixed bottom-16 right-4 w-96 h-96 bg-gray-800 rounded-lg shadow-xl flex flex-col">
           <div className="p-3 border-b border-gray-700 flex items-center justify-between">
@@ -169,20 +185,25 @@ function DebugConsole() {
               </button>
             </div>
           </div>
-          
+
           <div className="p-2 border-b border-gray-700 flex gap-2">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-2 top-2.5 text-gray-500" />
+              <Search
+                size={16}
+                className="absolute left-2 top-2.5 text-gray-500"
+              />
               <input
                 type="text"
                 value={filter}
-                onChange={e => setFilter(e.target.value)}
+                onChange={(e) => setFilter(e.target.value)}
                 placeholder="Search logs..."
                 className="w-full pl-8 pr-4 py-2 bg-gray-700 text-white rounded-md text-sm"
               />
             </div>
             <button
-              onClick={() => setActiveTypes(new Set(['info', 'error', 'warn', 'debug']))}
+              onClick={() =>
+                setActiveTypes(new Set(['info', 'error', 'warn', 'debug']))
+              }
               className="p-2 text-gray-400 hover:text-white transition-colors"
               title="Reset filters"
             >
@@ -191,12 +212,15 @@ function DebugConsole() {
           </div>
 
           <div className="flex-1 overflow-auto">
-            {filteredLogs.map(log => (
+            {filteredLogs.map((log) => (
               <div
                 key={log.id}
                 className={`p-2 border-b border-gray-700 ${
-                  log.type === 'error' ? 'bg-red-900/20' :
-                  log.type === 'warn' ? 'bg-yellow-900/20' : ''
+                  log.type === 'error'
+                    ? 'bg-red-900/20'
+                    : log.type === 'warn'
+                      ? 'bg-yellow-900/20'
+                      : ''
                 }`}
               >
                 <div className="flex items-center justify-between text-xs text-gray-500">
@@ -216,4 +240,3 @@ function DebugConsole() {
 const useDebug = () => useContext(DebugContext);
 
 export { DebugProvider, DebugConsole, useDebug };
-

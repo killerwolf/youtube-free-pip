@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
 import { useDebug } from '../DebugConsole';
+import { useAuth } from './AuthContext';
 
 export function AuthCallback() {
   const navigate = useNavigate();

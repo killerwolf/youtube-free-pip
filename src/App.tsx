@@ -1,11 +1,11 @@
+import { LogOut, Video } from 'lucide-react';
 import { StrictMode } from 'react';
-import { Video, LogOut } from 'lucide-react';
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { useDebug, DebugConsole } from './components/DebugConsole';
+import { Route, Routes } from 'react-router-dom';
+import { DebugConsole, useDebug } from './components/DebugConsole';
 import { AuthCallback } from './components/auth/AuthCallback';
-import { PlaylistSelector } from './components/youtube/PlaylistSelector';
 import { useAuth } from './components/auth/AuthContext';
+import { PlaylistSelector } from './components/youtube/PlaylistSelector';
 import { VideoPlayer } from './components/youtube/VideoPlayer';
 import { extractYouTubeVideoId } from './utils/youtube';
 

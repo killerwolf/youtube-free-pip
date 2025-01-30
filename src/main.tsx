@@ -2,9 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { DebugProvider } from './components/DebugConsole';
 import { AuthProvider } from './components/auth/AuthContext';
 import { YouTubeProvider } from './components/youtube/YouTubeContext';
-import { DebugProvider } from './components/DebugConsole';
 import './index.css';
 
 // Validate environment variables

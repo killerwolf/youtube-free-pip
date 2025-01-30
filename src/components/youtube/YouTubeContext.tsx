@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { useDebug } from '../DebugConsole';
+import { useAuth } from '../auth/AuthContext';
+import { useYouTubeService } from './YouTubeService';
 import type {
+  YouTubeContextType,
   YouTubePlaylist,
   YouTubePlaylistItem,
-  YouTubeContextType,
 } from './types';
-import { useYouTubeService } from './YouTubeService';
-import { useAuth } from '../auth/AuthContext';
-import { useDebug } from '../DebugConsole';
 
 const YouTubeContext = createContext<YouTubeContextType | null>(null);
 

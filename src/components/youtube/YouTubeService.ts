@@ -1,12 +1,12 @@
+import { useDebug } from '../DebugConsole';
 import { useAuth } from '../auth/AuthContext';
 import type {
+  YouTubeListResponse,
   YouTubePlaylist,
   YouTubePlaylistItem,
   YouTubeVideo,
-  YouTubeListResponse,
 } from './types';
 import { YouTubeError } from './types';
-import { useDebug } from '../DebugConsole';
 
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 const DTP_API_BASE_URL = 'https://data-portability.googleapis.com/v1';

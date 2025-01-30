@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { useYouTube } from './YouTubeContext';
+import { useDebug } from '../DebugConsole';
 import { useAuth } from '../auth/AuthContext';
 import { GoogleAuthButton } from '../auth/GoogleAuthButton';
-import { useDebug } from '../DebugConsole';
+import { useYouTube } from './YouTubeContext';
 
 interface PlaylistSelectorProps {
   onVideoSelect: (videoId: string) => void;

@@ -159,6 +159,7 @@ function DebugConsole() {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <button
+        type="button"
         onClick={() => setIsConsoleVisible((prev) => !prev)}
         className="p-2 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors"
       >
@@ -171,6 +172,7 @@ function DebugConsole() {
             <h3 className="text-white font-semibold">Debug Console</h3>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={clearLogs}
                 className="p-1 text-gray-400 hover:text-white transition-colors"
                 title="Clear logs"
@@ -178,6 +180,7 @@ function DebugConsole() {
                 <Trash2 size={16} />
               </button>
               <button
+                type="button"
                 onClick={() => setIsConsoleVisible(false)}
                 className="p-1 text-gray-400 hover:text-white transition-colors"
               >
@@ -201,6 +204,7 @@ function DebugConsole() {
               />
             </div>
             <button
+              type="button"
               onClick={() =>
                 setActiveTypes(new Set(['info', 'error', 'warn', 'debug']))
               }

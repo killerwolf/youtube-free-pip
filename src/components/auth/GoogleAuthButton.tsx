@@ -5,6 +5,7 @@ export function GoogleAuthButton() {
 
   return (
     <button
+      type="button"
       onClick={isAuthenticated ? logout : login}
       className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
     >
@@ -30,7 +31,10 @@ function GoogleIcon() {
       width="18"
       height="18"
       viewBox="0 0 48 48"
+      aria-label="Google logo"
+      role="img"
     >
+      <title>Google Sign In</title>
       <path
         fill="#EA4335"
         d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
@@ -63,7 +67,10 @@ function LogoutIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-label="Logout icon"
+      role="img"
     >
+      <title>Sign out</title>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />

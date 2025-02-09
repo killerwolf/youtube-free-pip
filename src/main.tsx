@@ -16,7 +16,13 @@ if (!import.meta.env.VITE_GOOGLE_API_KEY) {
   throw new Error('VITE_GOOGLE_API_KEY is not set in environment variables');
 }
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error('Failed to find root element');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <BrowserRouter>
       <DebugProvider>

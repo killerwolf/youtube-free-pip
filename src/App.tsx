@@ -40,6 +40,7 @@ function AppContent() {
             <Video className="w-5 h-5 text-red-600" />
             {isAuthenticated && (
               <button
+                type="button"
                 onClick={logout}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
               >

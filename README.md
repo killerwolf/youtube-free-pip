@@ -1,5 +1,7 @@
 # YouTube Free PiP
 
+[![CI](https://github.com/killerwolf/youtube-free-pip/actions/workflows/ci.yml/badge.svg)](https://github.com/killerwolf/youtube-free-pip/actions/workflows/ci.yml)
+
 A modern, open-source YouTube client built with React that enables Picture-in-Picture mode for any YouTube video, along with easy playlist management and video history tracking.
 
 ## Features
@@ -66,11 +68,12 @@ npm run dev
 ### Available Scripts
 
 - `npm run dev` - Start development server
-- `npm run build` - Build for production
+- `npm run build` - Build for production (includes type checking)
 - `npm run preview` - Preview production build
-- `npm run lint` - Run Biome linter
+- `npm run lint` - Run Biome checks
 - `npm run format` - Format code with Biome
-- `npm run check` - Run Biome checks
+- `npm run type-check` - Run TypeScript type checking
+- `npm run ci` - Run all checks (types, lint, build)
 
 ## Project Structure
 
@@ -90,10 +93,15 @@ We welcome contributions! Here's how you can help:
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature-name`
 3. Make your changes
-4. Run the linter: `npm run lint`
+4. Run all checks: `npm run ci`
 5. Commit your changes: `git commit -m 'Add some feature'`
 6. Push to your branch: `git push origin feature/your-feature-name`
 7. Create a Pull Request
+
+Your Pull Request will automatically trigger our CI pipeline which runs:
+- TypeScript type checking
+- Biome linting and formatting checks
+- Build verification
 
 ### Code Style
 

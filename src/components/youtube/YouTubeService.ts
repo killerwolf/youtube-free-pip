@@ -1,12 +1,37 @@
+import { useDebug } from '../DebugConsole';
 import { useAuth } from '../auth/AuthContext';
 import type {
+  YouTubeListResponse,
   YouTubePlaylist,
   YouTubePlaylistItem,
   YouTubeVideo,
-  YouTubeListResponse,
 } from './types';
 import { YouTubeError } from './types';
-import { useDebug } from '../DebugConsole';
+
+interface DataPortabilityVideo {
+  etag: string;
+  id: string;
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      default: { url: string; width: number; height: number };
+      medium?: { url: string; width: number; height: number };
+      high?: { url: string; width: number; height: number };
+    };
+    position?: number;
+  };
+}
+
+interface DataPortabilityResponse {
+  items: DataPortabilityVideo[];
+  etag: string;
+  nextPageToken?: string;
+  pageInfo: {
+    totalResults: number;
+    resultsPerPage: number;
+  };
+}
 
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 const DTP_API_BASE_URL = 'https://data-portability.googleapis.com/v1';
@@ -61,9 +86,9 @@ export function useYouTubeService() {
 
     const url = new URL(`${baseUrl}${endpoint}`);
     if (options.params) {
-      Object.entries(options.params).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(options.params)) {
         url.searchParams.append(key, value);
-      });
+      }
     }
 
     addLog(`Fetching: ${endpoint}`, 'debug', 'YouTube');
@@ -118,8 +143,8 @@ export function useYouTubeService() {
       },
     });
 
-    const data = await handleResponse<any>(response);
-    const items = data.items.map((video: any) => ({
+    const data = await handleResponse<DataPortabilityResponse>(response);
+    const items = data.items.map((video) => ({
       kind: 'youtube#playlistItem',
       etag: video.etag,
       id: video.id,
@@ -161,8 +186,8 @@ export function useYouTubeService() {
       },
     });
 
-    const data = await handleResponse<any>(response);
-    const items = data.items.map((video: any) => ({
+    const data = await handleResponse<DataPortabilityResponse>(response);
+    const items = data.items.map((video) => ({
       kind: 'youtube#playlistItem',
       etag: video.etag,
       id: video.id,

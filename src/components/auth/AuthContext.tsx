@@ -5,9 +5,9 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import { useDebug } from '../DebugConsole';
 import type { AuthContextType, AuthState, TokenResponse } from './types';
 import { AUTH_STORAGE_KEY, AuthError } from './types';
-import { useDebug } from '../DebugConsole';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;

@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { useDebug } from '../DebugConsole';
+import { useAuth } from '../auth/AuthContext';
+import { useYouTubeService } from './YouTubeService';
 import type {
+  YouTubeContextType,
   YouTubePlaylist,
   YouTubePlaylistItem,
-  YouTubeContextType,
 } from './types';
-import { useYouTubeService } from './YouTubeService';
-import { useAuth } from '../auth/AuthContext';
-import { useDebug } from '../DebugConsole';
 
 const YouTubeContext = createContext<YouTubeContextType | null>(null);
 
@@ -38,14 +38,17 @@ export function YouTubeProvider({ children }: { children: React.ReactNode }) {
         playlists: response.nextPageToken,
       }));
     } catch (err) {
-      console.error('Error loading playlists:', err);
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to load playlists';
+      console.error('Error loading playlists:', err);
+      addLog(
+        `Error loading playlists with token ${accessToken}: ${errorMessage}`
+      );
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [loading, youtubeService]);
+  }, [loading, youtubeService, accessToken, addLog]);
 
   const selectPlaylist = useCallback(
     async (playlist: YouTubePlaylist | null) => {

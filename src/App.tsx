@@ -1,11 +1,11 @@
+import { LogOut, Video } from 'lucide-react';
 import { StrictMode } from 'react';
-import { Video, LogOut } from 'lucide-react';
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { useDebug, DebugConsole } from './components/DebugConsole';
+import { Route, Routes } from 'react-router-dom';
+import { DebugConsole, useDebug } from './components/DebugConsole';
 import { AuthCallback } from './components/auth/AuthCallback';
-import { PlaylistSelector } from './components/youtube/PlaylistSelector';
 import { useAuth } from './components/auth/AuthContext';
+import { PlaylistSelector } from './components/youtube/PlaylistSelector';
 import { VideoPlayer } from './components/youtube/VideoPlayer';
 import { extractYouTubeVideoId } from './utils/youtube';
 
@@ -40,6 +40,7 @@ function AppContent() {
             <Video className="w-5 h-5 text-red-600" />
             {isAuthenticated && (
               <button
+                type="button"
                 onClick={logout}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
               >

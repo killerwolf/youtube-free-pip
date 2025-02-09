@@ -11,8 +11,10 @@ export function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         className="absolute inset-0 w-full h-full"
+        title="YouTube video player"
       />
       <button
+        type="button"
         onClick={onClose}
         className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full"
       >

@@ -2,9 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { DebugProvider } from './components/DebugConsole';
 import { AuthProvider } from './components/auth/AuthContext';
 import { YouTubeProvider } from './components/youtube/YouTubeContext';
-import { DebugProvider } from './components/DebugConsole';
 import './index.css';
 
 // Validate environment variables
@@ -16,7 +16,13 @@ if (!import.meta.env.VITE_GOOGLE_API_KEY) {
   throw new Error('VITE_GOOGLE_API_KEY is not set in environment variables');
 }
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error('Failed to find root element');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <BrowserRouter>
       <DebugProvider>

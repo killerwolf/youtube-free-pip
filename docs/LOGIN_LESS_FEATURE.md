@@ -36,8 +36,20 @@ The Login Less feature allows users to access YouTube playlists without requirin
 - [x] Add detailed error messages for different failure cases
 - [x] Add empty playlist detection
 
+### Phase 6: Video Progress Improvements
+- [ ] Auto-mark videos as watched 2 minutes before completion
+- [ ] Fix video duration display format
+- [ ] Add video progress indicator per video
+  - [ ] Implement vertical progress gauge
+  - [ ] Show progress in playlist items
+  - [ ] Save and load progress state
+- [ ] Improve progress tracking UX
+  - [ ] Add visual feedback for auto-watch threshold
+  - [ ] Show remaining time until auto-watched
+
 ## Current Status
 ✅ Initial implementation complete with improved error handling
+🚧 Video progress tracking improvements in progress
 
 ### Features Implemented
 1. Local Storage

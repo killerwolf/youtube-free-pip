@@ -1,5 +1,6 @@
 import { usePlaylist } from './PlaylistContext';
 import { useEffect, useRef, useState } from 'react';
+import { VideoPlayer } from './VideoPlayer';
 
 export const SplitView = () => {
   const { currentVideo, videos, watchedVideos, isLoading, error } = usePlaylist();
@@ -46,17 +47,7 @@ export const SplitView = () => {
           isPlayerVisible ? 'h-2/5' : 'h-0'
         }`}
       >
-        {currentVideo && (
-          <div className="w-full h-full bg-black">
-            <iframe
-              src={`https://www.youtube.com/embed/${currentVideo.id}?autoplay=1&rel=0`}
-              title={currentVideo.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
-        )}
+        {currentVideo && <VideoPlayer />}
       </div>
 
       {/* Playlist Section */}

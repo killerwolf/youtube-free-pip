@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePlaylist } from './PlaylistContext';
 import { extractPlaylistId } from '../../utils/youtube';
 
@@ -6,10 +6,18 @@ export function PlaylistInput() {
   const [inputUrl, setInputUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { setPlaylistUrl } = usePlaylist();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const submitTimeoutRef = useRef<number>();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const playlistId = extractPlaylistId(inputUrl.trim());
+  // Focus input on mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleSubmit = (url: string) => {
+    const playlistId = extractPlaylistId(url.trim());
     
     if (!playlistId) {
       setError('Invalid YouTube playlist URL');
@@ -21,34 +29,51 @@ export function PlaylistInput() {
     setInputUrl('');
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value;
+    setInputUrl(newUrl);
+    setError(null);
+
+    // Clear any existing timeout
+    if (submitTimeoutRef.current) {
+      window.clearTimeout(submitTimeoutRef.current);
+    }
+
+    // Auto-submit after a short delay if the URL looks valid
+    if (newUrl.includes('youtube.com/playlist?list=') || 
+        newUrl.includes('youtu.be/playlist?list=') ||
+        (newUrl.includes('youtube.com/watch?') && newUrl.includes('list='))) {
+      submitTimeoutRef.current = window.setTimeout(() => {
+        handleSubmit(newUrl);
+      }, 500);
+    }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmit(inputUrl);
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto p-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            htmlFor="playlist-url"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Enter YouTube Playlist URL
-          </label>
-          <input
-            id="playlist-url"
-            type="text"
-            value={inputUrl}
-            onChange={(e) => setInputUrl(e.target.value)}
-            placeholder="https://www.youtube.com/playlist?list=..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-          />
-          {error && (
-            <p className="mt-1 text-sm text-red-600">{error}</p>
-          )}
-        </div>
-        <button
-          type="submit"
-          className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-        >
-          Load Playlist
-        </button>
+    <div className="w-full max-w-md">
+      <form onSubmit={handleFormSubmit} className="space-y-2">
+        <input
+          ref={inputRef}
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck="false"
+          value={inputUrl}
+          onChange={handleChange}
+          placeholder="Paste YouTube playlist URL"
+          className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md shadow-sm placeholder-gray-500
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
       </form>
     </div>
   );

@@ -3,6 +3,13 @@
 ## Overview
 The Login Less feature allows users to access YouTube playlists without requiring authentication. Users can input a public playlist URL, which is saved locally for future visits.
 
+## Supported URL Formats
+The app supports two YouTube playlist URL formats:
+1. Direct playlist URL: `https://www.youtube.com/playlist?list=PLAYLIST_ID`
+2. Video in playlist URL: `https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID`
+
+Both formats will be automatically detected and processed.
+
 ## Implementation Plan
 
 ### Phase 1: Local Storage Integration ✅

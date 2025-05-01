@@ -87,13 +87,20 @@ export interface YouTubeVideo {
   title: string;
   thumbnailUrl: string;
   channelTitle: string;
+  lengthSeconds: number;
+}
+
+export interface PlaylistData {
+  title: string;
+  author: string;
+  videos: YouTubeVideo[];
 }
 
 /**
  * Fetches playlist data from YouTube's API
  * Uses the Invidious API as a CORS proxy to access YouTube data
  */
-export async function fetchPlaylistData(playlistId: string): Promise<YouTubeVideo[]> {
+export async function fetchPlaylistData(playlistId: string): Promise<PlaylistData> {
   try {
     // Use Invidious API to fetch playlist data
     // We'll try multiple instances in case some are down
@@ -128,12 +135,17 @@ export async function fetchPlaylistData(playlistId: string): Promise<YouTubeVide
           throw new Error('Invalid playlist data format');
         }
 
-        return data.videos.map((video: any) => ({
-          id: video.videoId,
-          title: video.title,
-          thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
-          channelTitle: video.author,
-        }));
+        return {
+          title: data.title || 'Untitled Playlist',
+          author: data.author || 'Unknown Author',
+          videos: data.videos.map((video: any) => ({
+            id: video.videoId,
+            title: video.title,
+            thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
+            channelTitle: video.author,
+            lengthSeconds: video.lengthSeconds || 0
+          }))
+        };
       } catch (error) {
         console.warn(`Failed to fetch from ${instance}:`, error);
         lastError = error as Error;
@@ -156,26 +168,16 @@ export async function fetchPlaylistData(playlistId: string): Promise<YouTubeVide
 }
 
 /**
- * Formats duration from ISO 8601 format to human readable format
- * Example: PT1H2M10S -> 1:02:10
+ * Formats duration from seconds to human readable format
+ * Example: 3600 -> 1:00:00
  */
-export const formatDuration = (isoDuration: string): string => {
-  const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return '0:00';
+export const formatDuration = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
 
-  const [, hours, minutes, seconds] = match;
-  const parts: string[] = [];
-
-  if (hours) {
-    parts.push(hours);
-    parts.push(minutes?.padStart(2, '0') || '00');
-  } else if (minutes) {
-    parts.push(minutes);
-  } else {
-    parts.push('0');
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
-
-  parts.push((seconds || '0').padStart(2, '0'));
-
-  return parts.join(':');
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };

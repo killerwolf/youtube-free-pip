@@ -2,8 +2,14 @@ import { usePlaylist } from './PlaylistContext';
 import { X } from 'lucide-react';
 
 export function PlaylistHeader() {
-  const { playlistTitle, playlistAuthor, videos, watchedVideos, clearPlaylist } = usePlaylist();
-  
+  const {
+    playlistTitle,
+    playlistAuthor,
+    videos,
+    watchedVideos,
+    clearPlaylist,
+  } = usePlaylist();
+
   const handleClear = () => {
     if (confirm('Are you sure you want to clear the current playlist?')) {
       clearPlaylist();
@@ -13,13 +19,20 @@ export function PlaylistHeader() {
   return (
     <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900">
       <div className="flex-1 min-w-0 mr-4">
-        <h1 className="text-lg font-semibold truncate text-white" title={playlistTitle}>
+        <h1
+          className="text-lg font-semibold truncate text-white"
+          title={playlistTitle}
+        >
           {playlistTitle}
         </h1>
         <div className="flex items-center text-sm text-gray-400 mt-1">
-          <span className="truncate" title={playlistAuthor}>{playlistAuthor}</span>
+          <span className="truncate" title={playlistAuthor}>
+            {playlistAuthor}
+          </span>
           <span className="mx-2">•</span>
-          <span>{watchedVideos.size}/{videos.length} watched</span>
+          <span>
+            {watchedVideos.size}/{videos.length} watched
+          </span>
         </div>
       </div>
       <button
@@ -31,4 +44,4 @@ export function PlaylistHeader() {
       </button>
     </div>
   );
-} 
+}

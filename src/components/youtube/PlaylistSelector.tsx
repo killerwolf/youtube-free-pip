@@ -17,7 +17,7 @@ const VideoProgress = ({ videoId }: { videoId: string }) => {
         const progressData = JSON.parse(saved);
         const currentTime = progressData[videoId] || 0;
         // Get video duration from the playlist context
-        const video = usePlaylist().videos.find(v => v.id === videoId);
+        const video = usePlaylist().videos.find((v) => v.id === videoId);
         if (video) {
           return calculateProgress(currentTime, video.lengthSeconds);
         }
@@ -30,16 +30,14 @@ const VideoProgress = ({ videoId }: { videoId: string }) => {
 
   return (
     <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-      <div 
-        className="h-full bg-red-600" 
-        style={{ width: `${progress}%` }}
-      />
+      <div className="h-full bg-red-600" style={{ width: `${progress}%` }} />
     </div>
   );
 };
 
 export const PlaylistSelector = () => {
-  const { videos, currentVideo, watchedVideos, setCurrentVideo } = usePlaylist();
+  const { videos, currentVideo, watchedVideos, setCurrentVideo } =
+    usePlaylist();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +78,7 @@ export const PlaylistSelector = () => {
             )}
           </div>
           <div className="flex flex-col flex-grow">
-            <h3 
+            <h3
               className={`font-medium line-clamp-2 ${
                 currentVideo?.id === video.id ? 'text-blue-600' : ''
               }`}

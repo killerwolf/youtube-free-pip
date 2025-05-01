@@ -30,14 +30,14 @@ const YOUTUBE_PLAYLIST_PATTERNS = [
  */
 export const extractPlaylistId = (text: string): string | null => {
   const trimmed = text.trim();
-  
+
   for (const pattern of YOUTUBE_PLAYLIST_PATTERNS) {
     const match = trimmed.match(pattern);
     if (match?.[1]) {
       return match[1];
     }
   }
-  
+
   return null;
 };
 
@@ -100,7 +100,9 @@ export interface PlaylistData {
  * Fetches playlist data from YouTube's API
  * Uses the Invidious API as a CORS proxy to access YouTube data
  */
-export async function fetchPlaylistData(playlistId: string): Promise<PlaylistData> {
+export async function fetchPlaylistData(
+  playlistId: string
+): Promise<PlaylistData> {
   try {
     // Use Invidious API to fetch playlist data
     // We'll try multiple instances in case some are down
@@ -112,7 +114,7 @@ export async function fetchPlaylistData(playlistId: string): Promise<PlaylistDat
     ];
 
     let lastError: Error | null = null;
-    
+
     // Try each instance until one works
     for (const instance of invidiousInstances) {
       try {
@@ -120,7 +122,7 @@ export async function fetchPlaylistData(playlistId: string): Promise<PlaylistDat
           `${instance}/api/v1/playlists/${playlistId}`,
           {
             headers: {
-              'Accept': 'application/json',
+              Accept: 'application/json',
             },
           }
         );
@@ -130,7 +132,7 @@ export async function fetchPlaylistData(playlistId: string): Promise<PlaylistDat
         }
 
         const data = await response.json();
-        
+
         if (!data.videos || !Array.isArray(data.videos)) {
           throw new Error('Invalid playlist data format');
         }
@@ -143,8 +145,8 @@ export async function fetchPlaylistData(playlistId: string): Promise<PlaylistDat
             title: video.title,
             thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
             channelTitle: video.author,
-            lengthSeconds: video.lengthSeconds || 0
-          }))
+            lengthSeconds: video.lengthSeconds || 0,
+          })),
         };
       } catch (error) {
         console.warn(`Failed to fetch from ${instance}:`, error);
@@ -160,7 +162,7 @@ export async function fetchPlaylistData(playlistId: string): Promise<PlaylistDat
   } catch (error) {
     console.error('Error fetching playlist data:', error);
     throw new Error(
-      error instanceof Error 
+      error instanceof Error
         ? `Failed to fetch playlist data: ${error.message}`
         : 'Failed to fetch playlist data'
     );
@@ -177,7 +179,9 @@ export const formatDuration = (seconds: number): string => {
   const remainingSeconds = Math.floor(seconds % 60);
 
   if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds
+      .toString()
+      .padStart(2, '0')}`;
   }
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };

@@ -7,10 +7,17 @@ import { PlaylistHeader } from './PlaylistHeader';
 import { PlaylistInput } from './PlaylistInput';
 
 export const SplitView = () => {
-  const { currentVideo, videos, watchedVideos, isLoading, error, playlistTitle } = usePlaylist();
+  const {
+    currentVideo,
+    videos,
+    watchedVideos,
+    isLoading,
+    error,
+    playlistTitle,
+  } = usePlaylist();
   const [isPlayerVisible, setIsPlayerVisible] = useState(true);
   const lastScrollY = useRef(0);
-  
+
   // Auto-hide player on scroll down, show on scroll up
   useEffect(() => {
     const handleScroll = () => {
@@ -46,7 +53,7 @@ export const SplitView = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-900 text-white">
       {/* Video Player Section */}
-      <div 
+      <div
         className={`transition-all duration-300 ${
           isPlayerVisible && currentVideo ? 'h-2/5' : 'h-0'
         }`}
@@ -59,7 +66,7 @@ export const SplitView = () => {
       </div>
 
       {/* Playlist Section */}
-      <div 
+      <div
         className={`flex-1 overflow-y-auto transition-all duration-300 ${
           isPlayerVisible && currentVideo ? 'h-3/5' : 'h-screen'
         }`}
@@ -83,21 +90,13 @@ export const SplitView = () => {
 
             {/* Videos Section */}
             <div className="p-4 space-y-4">
-              {unwatchedVideos.map(video => (
-                <VideoItem 
-                  key={video.id}
-                  video={video}
-                  isWatched={false}
-                />
+              {unwatchedVideos.map((video) => (
+                <VideoItem key={video.id} video={video} isWatched={false} />
               ))}
               {watchedVideosList.length > 0 && (
                 <div className="opacity-60 space-y-4 mt-8">
-                  {watchedVideosList.map(video => (
-                    <VideoItem 
-                      key={video.id}
-                      video={video}
-                      isWatched={true}
-                    />
+                  {watchedVideosList.map((video) => (
+                    <VideoItem key={video.id} video={video} isWatched={true} />
                   ))}
                 </div>
               )}
@@ -121,10 +120,15 @@ interface VideoItemProps {
 }
 
 const VideoItem = ({ video, isWatched }: VideoItemProps) => {
-  const { setCurrentVideo, markVideoAsWatched, unmarkVideoAsWatched, currentVideo } = usePlaylist();
+  const {
+    setCurrentVideo,
+    markVideoAsWatched,
+    unmarkVideoAsWatched,
+    currentVideo,
+  } = usePlaylist();
   const [progress, setProgress] = useState(0);
   const isCurrentlyPlaying = currentVideo?.id === video.id;
-  
+
   // Load saved progress when component mounts
   useEffect(() => {
     try {
@@ -132,7 +136,7 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
       if (saved) {
         const progressData = JSON.parse(saved);
         const videoProgress = progressData[video.id] || 0;
-        setProgress(videoProgress / video.lengthSeconds * 100);
+        setProgress((videoProgress / video.lengthSeconds) * 100);
       }
     } catch (error) {
       console.warn('[Debug] Failed to load video progress:', error);
@@ -153,7 +157,7 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   };
 
   return (
-    <div 
+    <div
       className={`flex items-center space-x-4 p-2 rounded-lg cursor-pointer relative
         ${isWatched ? 'opacity-60' : 'hover:bg-gray-800'}
         ${isCurrentlyPlaying ? 'bg-gray-800 ring-1 ring-blue-500' : ''}`}
@@ -166,8 +170,8 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
 
       {/* Thumbnail with Progress Bar */}
       <div className="relative w-32 h-18">
-        <img 
-          src={video.thumbnail} 
+        <img
+          src={video.thumbnail}
           alt={video.title}
           className="rounded object-cover w-full h-full"
         />
@@ -178,8 +182,8 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
         {/* YouTube-style progress bar */}
         {progress > 0 && !isWatched && (
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800">
-            <div 
-              className="h-full bg-red-600" 
+            <div
+              className="h-full bg-red-600"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -194,7 +198,11 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <h3 className={`font-medium line-clamp-2 ${isCurrentlyPlaying ? 'text-blue-400' : ''}`}>
+        <h3
+          className={`font-medium line-clamp-2 ${
+            isCurrentlyPlaying ? 'text-blue-400' : ''
+          }`}
+        >
           {video.title}
         </h3>
         <p className="text-sm text-gray-400 truncate">{video.channelTitle}</p>
@@ -216,4 +224,4 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
       </button>
     </div>
   );
-}; 
+};

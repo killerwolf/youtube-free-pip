@@ -32,7 +32,7 @@ const LOCAL_STORAGE_KEYS = {
   WATCHED_VIDEOS: 'youtube-pip-watched-videos',
   CURRENT_VIDEO: 'youtube-pip-current-video',
   PLAYLIST_TITLE: 'youtube-pip-playlist-title',
-  PLAYLIST_AUTHOR: 'youtube-pip-playlist-author'
+  PLAYLIST_AUTHOR: 'youtube-pip-playlist-author',
 } as const;
 
 export function PlaylistProvider({ children }: { children: React.ReactNode }) {
@@ -46,14 +46,20 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
 
   const [playlistTitle, setPlaylistTitle] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_TITLE) || 'Untitled Playlist';
+      return (
+        localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_TITLE) ||
+        'Untitled Playlist'
+      );
     }
     return 'Untitled Playlist';
   });
 
   const [playlistAuthor, setPlaylistAuthor] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_AUTHOR) || 'Unknown Author';
+      return (
+        localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_AUTHOR) ||
+        'Unknown Author'
+      );
     }
     return 'Unknown Author';
   });
@@ -61,7 +67,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [watchedVideos, setWatchedVideos] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.WATCHED_VIDEOS);
@@ -99,16 +105,20 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
         const playlistData = await fetchPlaylistData(playlistId);
         setPlaylistTitle(playlistData.title);
         setPlaylistAuthor(playlistData.author);
-        setVideos(playlistData.videos.map(video => ({
-          id: video.id,
-          title: video.title,
-          thumbnail: video.thumbnailUrl,
-          lengthSeconds: video.lengthSeconds,
-          channelTitle: video.channelTitle
-        })));
+        setVideos(
+          playlistData.videos.map((video) => ({
+            id: video.id,
+            title: video.title,
+            thumbnail: video.thumbnailUrl,
+            lengthSeconds: video.lengthSeconds,
+            channelTitle: video.channelTitle,
+          }))
+        );
       } catch (err) {
         console.error('Failed to load playlist:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load playlist');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load playlist'
+        );
         setVideos([]);
       } finally {
         setIsLoading(false);
@@ -137,7 +147,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem(
-      LOCAL_STORAGE_KEYS.WATCHED_VIDEOS, 
+      LOCAL_STORAGE_KEYS.WATCHED_VIDEOS,
       JSON.stringify(Array.from(watchedVideos))
     );
   }, [watchedVideos]);
@@ -167,13 +177,23 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
   };
 
   const markVideoAsWatched = (videoId: string) => {
-    console.log('[Debug] Marking video as watched:', videoId, 'Caller:', new Error().stack);
-    setWatchedVideos(prev => new Set([...prev, videoId]));
+    console.log(
+      '[Debug] Marking video as watched:',
+      videoId,
+      'Caller:',
+      new Error().stack
+    );
+    setWatchedVideos((prev) => new Set([...prev, videoId]));
   };
 
   const unmarkVideoAsWatched = (videoId: string) => {
-    console.log('[Debug] Unmarking video as watched:', videoId, 'Caller:', new Error().stack);
-    setWatchedVideos(prev => {
+    console.log(
+      '[Debug] Unmarking video as watched:',
+      videoId,
+      'Caller:',
+      new Error().stack
+    );
+    setWatchedVideos((prev) => {
       const next = new Set(prev);
       next.delete(videoId);
       return next;
@@ -194,18 +214,18 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     setPlaylistTitle('Untitled Playlist');
     setPlaylistAuthor('Unknown Author');
-    
+
     // Clear all related localStorage data
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_TITLE);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_AUTHOR);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.CURRENT_VIDEO);
     localStorage.removeItem('youtube-pip-video-progress'); // Clear video progress
-    
+
     // Clear watched videos only for the current playlist's videos
     if (videos.length > 0) {
       const newWatchedVideos = new Set(watchedVideos);
-      videos.forEach(video => {
+      videos.forEach((video) => {
         newWatchedVideos.delete(video.id);
       });
       setWatchedVideos(newWatchedVideos);
@@ -247,4 +267,4 @@ export function usePlaylist() {
     throw new Error('usePlaylist must be used within a PlaylistProvider');
   }
   return context;
-} 
+}

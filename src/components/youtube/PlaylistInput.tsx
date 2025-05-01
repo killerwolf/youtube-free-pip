@@ -18,7 +18,7 @@ export function PlaylistInput() {
 
   const handleSubmit = (url: string) => {
     const playlistId = extractPlaylistId(url.trim());
-    
+
     if (!playlistId) {
       setError('Invalid YouTube playlist URL');
       return;
@@ -40,9 +40,11 @@ export function PlaylistInput() {
     }
 
     // Auto-submit after a short delay if the URL looks valid
-    if (newUrl.includes('youtube.com/playlist?list=') || 
-        newUrl.includes('youtu.be/playlist?list=') ||
-        (newUrl.includes('youtube.com/watch?') && newUrl.includes('list='))) {
+    if (
+      newUrl.includes('youtube.com/playlist?list=') ||
+      newUrl.includes('youtu.be/playlist?list=') ||
+      (newUrl.includes('youtube.com/watch?') && newUrl.includes('list='))
+    ) {
       submitTimeoutRef.current = window.setTimeout(() => {
         handleSubmit(newUrl);
       }, 500);
@@ -71,10 +73,8 @@ export function PlaylistInput() {
           className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md shadow-sm placeholder-gray-500
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-        {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
       </form>
     </div>
   );
-} 
+}

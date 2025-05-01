@@ -13,12 +13,12 @@ export const PlaylistDetector = () => {
       try {
         const text = await navigator.clipboard.readText();
         const playlistId = findPlaylistInText(text);
-        
+
         if (playlistId) {
           const normalizedUrl = normalizePlaylistUrl(text);
           if (normalizedUrl && normalizedUrl !== lastDetectedUrl.current) {
             lastDetectedUrl.current = normalizedUrl;
-            
+
             // Show toast with action
             toast.success(
               (t: Toast) => (
@@ -68,7 +68,7 @@ export const PlaylistDetector = () => {
     }, 2000);
 
     window.addEventListener('focus', handleFocus);
-    
+
     return () => {
       window.removeEventListener('focus', handleFocus);
       clearInterval(interval);
@@ -85,7 +85,7 @@ export const PlaylistDetector = () => {
           const normalizedUrl = normalizePlaylistUrl(selection);
           if (normalizedUrl && normalizedUrl !== lastDetectedUrl.current) {
             lastDetectedUrl.current = normalizedUrl;
-            
+
             // Show toast with action
             toast.success(
               (t: Toast) => (
@@ -121,11 +121,11 @@ export const PlaylistDetector = () => {
     };
 
     document.addEventListener('selectionchange', handleSelection);
-    
+
     return () => {
       document.removeEventListener('selectionchange', handleSelection);
     };
   }, [setPlaylistUrl]);
 
   return null; // This is a utility component with no UI
-}; 
+};

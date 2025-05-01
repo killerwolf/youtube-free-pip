@@ -225,9 +225,9 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     // Clear watched videos only for the current playlist's videos
     if (videos.length > 0) {
       const newWatchedVideos = new Set(watchedVideos);
-      videos.forEach((video) => {
+      for (const video of videos) {
         newWatchedVideos.delete(video.id);
-      });
+      }
       setWatchedVideos(newWatchedVideos);
       localStorage.setItem(
         LOCAL_STORAGE_KEYS.WATCHED_VIDEOS,

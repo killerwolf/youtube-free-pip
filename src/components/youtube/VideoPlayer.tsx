@@ -10,14 +10,15 @@ declare global {
       getPlayerState(): number;
       playVideo(): void;
       pauseVideo(): void;
+      destroy(): void;
     }
   }
 
   interface Window {
     YT: {
       Player: new (
-        elementId: string | HTMLElement,
-        config: {
+        _elementId: string | HTMLElement,
+        _config: {
           videoId: string;
           playerVars?: {
             autoplay?: 0 | 1;
@@ -100,7 +101,7 @@ export const VideoPlayer = () => {
     currentVideo.id
   );
 
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YT.Player | null>(null);
   const playerElementRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<number>();
   const hasAutoMarkedAsWatched = useRef<boolean>(false);
@@ -169,7 +170,7 @@ export const VideoPlayer = () => {
 
     if (remainingTime <= threshold) {
       console.log(
-        `[Debug] Auto-marking video as watched:`,
+        '[Debug] Auto-marking video as watched:',
         `\n- Video ID: ${currentVideo.id}`,
         `\n- Title: ${currentVideo.title}`,
         `\n- Remaining time (${remainingTime.toFixed(
@@ -200,7 +201,7 @@ export const VideoPlayer = () => {
       setTimeout(() => notification.remove(), 2000);
     } else {
       console.log(
-        `[Debug] Not marking as watched yet:`,
+        '[Debug] Not marking as watched yet:',
         `\n- Remaining time (${remainingTime.toFixed(
           1
         )}s) is more than threshold (${threshold}s)`
@@ -226,7 +227,7 @@ export const VideoPlayer = () => {
   useEffect(() => {
     hasAutoMarkedAsWatched.current = false;
     lastProgressUpdate.current = { timestamp: 0, duration: 0 };
-  }, [currentVideo?.id]);
+  }, []); // Remove dependency
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -311,7 +312,8 @@ export const VideoPlayer = () => {
         }
       }
     };
-  }, [currentVideo?.id]); // Only re-run when video ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVideo?.id]); // Keep currentVideo.id, disable lint for initializePlayer dependency
 
   // Function to start progress tracking
   const startProgressTracking = (player: YT.Player, videoId: string) => {
@@ -501,7 +503,7 @@ export const VideoPlayer = () => {
                 isInitializing.current = false;
               })
               .catch((error) => {
-                console.error(`[Debug] Error in player ready wait:`, error);
+                console.error('[Debug] Error in player ready wait:', error);
                 isInitializing.current = false;
               });
           },

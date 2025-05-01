@@ -1,7 +1,7 @@
+import { Toaster } from 'react-hot-toast';
 import { PlaylistProvider } from './components/youtube/PlaylistContext';
 import { PlaylistDetector } from './components/youtube/PlaylistDetector';
 import { SplitView } from './components/youtube/SplitView';
-import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (

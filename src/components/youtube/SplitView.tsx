@@ -1,20 +1,14 @@
-import { usePlaylist } from './PlaylistContext';
-import { useEffect, useRef, useState } from 'react';
-import { VideoPlayer } from './VideoPlayer';
-import { formatDuration } from '../../utils/youtube';
 import { Eye, EyeOff } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { formatDuration } from '../../utils/youtube';
+import { usePlaylist } from './PlaylistContext';
 import { PlaylistHeader } from './PlaylistHeader';
 import { PlaylistInput } from './PlaylistInput';
+import { VideoPlayer } from './VideoPlayer';
 
 export const SplitView = () => {
-  const {
-    currentVideo,
-    videos,
-    watchedVideos,
-    isLoading,
-    error,
-    playlistTitle,
-  } = usePlaylist();
+  const { currentVideo, videos, watchedVideos, isLoading, error } =
+    usePlaylist();
   const [isPlayerVisible, setIsPlayerVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -73,7 +67,7 @@ export const SplitView = () => {
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white" />
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full p-4">
@@ -130,18 +124,23 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   const isCurrentlyPlaying = currentVideo?.id === video.id;
 
   // Load saved progress when component mounts
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     try {
       const saved = localStorage.getItem('youtube-pip-video-progress');
       if (saved) {
         const progressData = JSON.parse(saved);
         const videoProgress = progressData[video.id] || 0;
-        setProgress((videoProgress / video.lengthSeconds) * 100);
+        if (video.lengthSeconds > 0) {
+          setProgress((videoProgress / video.lengthSeconds) * 100);
+        } else {
+          setProgress(0);
+        }
       }
     } catch (error) {
       console.warn('[Debug] Failed to load video progress:', error);
     }
-  }, [video.id, video.lengthSeconds]);
+  }, [video]);
 
   const handleVideoSelect = () => {
     setCurrentVideo(video);
@@ -158,10 +157,17 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
 
   return (
     <div
-      className={`flex items-center space-x-4 p-2 rounded-lg cursor-pointer relative
+      className={`relative flex cursor-pointer items-center space-x-4 rounded-lg p-2
         ${isWatched ? 'opacity-60' : 'hover:bg-gray-800'}
         ${isCurrentlyPlaying ? 'bg-gray-800 ring-1 ring-blue-500' : ''}`}
       onClick={handleVideoSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleVideoSelect();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       {/* Now Playing Indicator */}
       {isCurrentlyPlaying && (
@@ -210,6 +216,7 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
 
       {/* Watch Toggle */}
       <button
+        type="button"
         onClick={handleToggleWatched}
         className={`p-2 rounded-full hover:bg-gray-700 transition-colors ${
           isWatched ? 'text-gray-400' : 'text-gray-300'

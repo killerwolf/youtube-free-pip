@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { usePlaylist } from './PlaylistContext';
+import { Toast, toast } from 'react-hot-toast';
 import { findPlaylistInText, normalizePlaylistUrl } from '../../utils/youtube';
-import { toast, Toast } from 'react-hot-toast';
+import { usePlaylist } from './PlaylistContext';
 
 export const PlaylistDetector = () => {
-  const { setPlaylistUrl, playlistUrl } = usePlaylist();
+  const { setPlaylistUrl } = usePlaylist();
   const lastDetectedUrl = useRef<string | null>(null);
 
   // Monitor clipboard
@@ -26,6 +26,7 @@ export const PlaylistDetector = () => {
                   <span>Playlist detected! Load it?</span>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       className="px-2 py-1 bg-green-500 text-white rounded"
                       onClick={() => {
                         setPlaylistUrl(normalizedUrl);
@@ -35,6 +36,7 @@ export const PlaylistDetector = () => {
                       Load
                     </button>
                     <button
+                      type="button"
                       className="px-2 py-1 bg-gray-500 text-white rounded"
                       onClick={() => toast.dismiss(t.id)}
                     >
@@ -93,6 +95,7 @@ export const PlaylistDetector = () => {
                   <span>Playlist detected in selection! Load it?</span>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       className="px-2 py-1 bg-green-500 text-white rounded"
                       onClick={() => {
                         setPlaylistUrl(normalizedUrl);
@@ -102,6 +105,7 @@ export const PlaylistDetector = () => {
                       Load
                     </button>
                     <button
+                      type="button"
                       className="px-2 py-1 bg-gray-500 text-white rounded"
                       onClick={() => toast.dismiss(t.id)}
                     >

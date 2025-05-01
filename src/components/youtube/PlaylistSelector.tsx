@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { usePlaylist } from './PlaylistContext';
 import { formatDuration } from '../../utils/formatDuration';
+import { usePlaylist } from './PlaylistContext';
 
 // Calculate progress percentage based on current time and duration
 const calculateProgress = (currentTime: number, duration: number): number => {
@@ -38,8 +38,8 @@ const VideoProgress = ({ videoId }: { videoId: string }) => {
 export const PlaylistSelector = () => {
   const { videos, currentVideo, watchedVideos, setCurrentVideo } =
     usePlaylist();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   if (loading) {
     return <div className="p-4">Loading playlist...</div>;
@@ -54,12 +54,21 @@ export const PlaylistSelector = () => {
       {videos.map((video) => (
         <div
           key={video.id}
-          className={`flex gap-4 p-2 rounded-lg cursor-pointer relative ${
+          className={`flex cursor-pointer items-center rounded p-2 hover:bg-gray-800 ${
+            watchedVideos.has(video.id) ? 'opacity-60' : ''
+          } ${
             currentVideo?.id === video.id
-              ? 'bg-blue-50 ring-2 ring-blue-500'
-              : 'hover:bg-gray-50'
+              ? 'bg-blue-900 ring-2 ring-blue-500'
+              : ''
           }`}
           onClick={() => setCurrentVideo(video)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              setCurrentVideo(video);
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
           <div className="relative w-40 h-24 flex-shrink-0">
             <img

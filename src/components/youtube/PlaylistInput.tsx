@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { usePlaylist } from './PlaylistContext';
+import { useEffect, useRef, useState } from 'react';
 import { extractPlaylistId } from '../../utils/youtube';
+import { usePlaylist } from './PlaylistContext';
 
 export function PlaylistInput() {
   const [inputUrl, setInputUrl] = useState('');

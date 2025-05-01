@@ -1,5 +1,5 @@
-import { usePlaylist } from './PlaylistContext';
 import { X } from 'lucide-react';
+import { usePlaylist } from './PlaylistContext';
 
 export function PlaylistHeader() {
   const {
@@ -36,6 +36,7 @@ export function PlaylistHeader() {
         </div>
       </div>
       <button
+        type="button"
         onClick={handleClear}
         className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-full transition-colors"
         title="Clear playlist"

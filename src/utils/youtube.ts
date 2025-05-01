@@ -96,6 +96,14 @@ export interface PlaylistData {
   videos: YouTubeVideo[];
 }
 
+interface InvidiousVideo {
+  videoId: string;
+  title: string;
+  videoThumbnails: { quality: string; url: string; width: number; height: number }[];
+  lengthSeconds: number;
+  author: string;
+}
+
 /**
  * Fetches playlist data from YouTube's API
  * Uses the Invidious API as a CORS proxy to access YouTube data
@@ -133,25 +141,32 @@ export async function fetchPlaylistData(
 
         const data = await response.json();
 
-        if (!data.videos || !Array.isArray(data.videos)) {
-          throw new Error('Invalid playlist data format');
-        }
+        console.log('[Debug] Fetched playlist data:', data);
 
         return {
           title: data.title || 'Untitled Playlist',
           author: data.author || 'Unknown Author',
-          videos: data.videos.map((video: any) => ({
-            id: video.videoId,
-            title: video.title,
-            thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
-            channelTitle: video.author,
-            lengthSeconds: video.lengthSeconds || 0,
-          })),
+          videos: data.videos.map((video: InvidiousVideo) => {
+            // Safely access thumbnails using the correct field name
+            console.log(`[Debug] Processing video: ${video.videoId}, Thumbnails raw:`, video.videoThumbnails); // Log raw thumbnails
+            const thumbnails = Array.isArray(video.videoThumbnails) ? video.videoThumbnails : [];
+            const thumbnailUrl = 
+              `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
+            
+            console.log(`[Debug] Video: ${video.videoId}, Final Thumbnail URL:`, thumbnailUrl); // Log final URL
+
+            return {
+              id: video.videoId,
+              title: video.title,
+              thumbnailUrl,
+              lengthSeconds: video.lengthSeconds || 0,
+              channelTitle: video.author || 'Unknown Channel',
+            };
+          }),
         };
       } catch (error) {
         console.warn(`Failed to fetch from ${instance}:`, error);
         lastError = error as Error;
-        continue; // Try next instance
       }
     }
 

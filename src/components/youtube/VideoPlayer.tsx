@@ -79,10 +79,15 @@ const isPlayerReady = (player: YT.Player): boolean => {
 };
 
 export const VideoPlayer = () => {
-  console.log('[Debug] VideoPlayer component mounted');
-
   const { currentVideo, markVideoAsWatched } = usePlaylist();
-  console.log('[Debug] Current video:', currentVideo);
+  
+  // Early return if no video
+  if (!currentVideo) {
+    console.log('[Debug] VideoPlayer not mounting - no current video');
+    return null;
+  }
+
+  console.log('[Debug] VideoPlayer component mounted for video:', currentVideo.id);
 
   const playerRef = useRef<any>(null);
   const playerElementRef = useRef<HTMLDivElement>(null);
@@ -212,32 +217,65 @@ export const VideoPlayer = () => {
       } else {
         console.error('[Debug] Could not find parent node to inject script');
       }
+    }
+  }, []); // This effect only runs once to load the API
 
-      // This code loads the IFrame Player API code asynchronously
+  // Initialize player when API is ready and video changes
+  useEffect(() => {
+    if (!currentVideo) return;
+    
+    // Ensure the player element exists
+    if (!playerElementRef.current) {
+      console.warn('[Debug] Player element ref not found during initialization');
+      return;
+    }
+
+    // Destroy existing player instance before creating a new one
+    if (playerRef.current) {
+      console.log('[Debug] Destroying existing player instance');
+      try {
+        playerRef.current.destroy();
+        playerRef.current = null; // Clear the ref
+      } catch (error) {
+        console.error('[Debug] Error destroying player instance:', error);
+      }
+    }
+    
+    if (window.YT) {
+      console.log('[Debug] Initializing player for video:', currentVideo.id);
+      initializePlayer(currentVideo.id);
+    } else {
+      console.log('[Debug] Waiting for YouTube API to load...');
       window.onYouTubeIframeAPIReady = () => {
-        console.log('[Debug] YouTube IFrame API ready callback fired');
-        if (currentVideo) {
-          console.log('[Debug] Initializing player from API ready callback');
+        console.log('[Debug] YouTube IFrame API ready, initializing player');
+        // Ensure the video hasn't changed while waiting
+        if (currentVideo && playerElementRef.current) {
           initializePlayer(currentVideo.id);
         } else {
-          console.log('[Debug] No current video available in API ready callback');
+          console.log('[Debug] Video changed or element missing after API load');
         }
       };
-    } else {
-      console.log('[Debug] YouTube IFrame API already loaded');
-      if (currentVideo) {
-        console.log('[Debug] Initializing player immediately');
-        initializePlayer(currentVideo.id);
-      }
     }
 
     return () => {
-      console.log('[Debug] Cleanup effect running');
+      console.log('[Debug] Cleanup effect running for video change');
+      // Clear interval
       if (progressIntervalRef.current) {
         window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = undefined;
+      }
+      // Destroy player instance on cleanup
+      if (playerRef.current) {
+        console.log('[Debug] Destroying player instance in cleanup');
+        try {
+          playerRef.current.destroy();
+          playerRef.current = null;
+        } catch (error) {
+          console.error('[Debug] Error destroying player instance in cleanup:', error);
+        }
       }
     };
-  }, []); // Empty dependency array means this runs once on mount
+  }, [currentVideo?.id]); // Only re-run when video ID changes
 
   // Function to start progress tracking
   const startProgressTracking = (player: YT.Player, videoId: string) => {
@@ -362,69 +400,6 @@ export const VideoPlayer = () => {
     }
   };
 
-  // Initialize or update player when video changes
-  useEffect(() => {
-    if (!currentVideo) {
-      console.log('[Debug] No current video selected');
-      return;
-    }
-
-    const videoId = currentVideo.id;
-    console.log(`[Debug] Video changed to: ${videoId}`);
-
-    // Clear existing progress tracking
-    if (progressIntervalRef.current) {
-      window.clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = undefined;
-    }
-
-    // If player exists, try to load new video
-    if (playerRef.current?.loadVideoById) {
-      const startTime = getSavedProgress(videoId);
-      console.log(`[Debug] Loading video ${videoId} at ${startTime} seconds`);
-      
-      try {
-        playerRef.current.loadVideoById({
-          videoId: videoId,
-          startSeconds: Math.floor(startTime)
-        });
-
-        // Wait for the video to be ready after loading
-        waitForPlayerReady(playerRef.current, videoId)
-          .then(() => {
-            startProgressTracking(playerRef.current, videoId);
-          })
-          .catch((error) => {
-            console.error(`[Debug] Error waiting for player ready after load:`, error);
-            // Try reinitializing player
-            if (!isInitializing.current) {
-              isInitializing.current = true;
-              initializePlayer(videoId);
-            }
-          });
-      } catch (error) {
-        console.error('[Debug] Error loading video:', error);
-        // Try reinitializing player
-        if (!isInitializing.current) {
-          isInitializing.current = true;
-          initializePlayer(videoId);
-        }
-      }
-    } else if (window.YT && !isInitializing.current) {
-      // Initialize new player
-      console.log(`[Debug] Creating new player for video ${videoId}`);
-      isInitializing.current = true;
-      initializePlayer(videoId);
-    }
-
-    return () => {
-      if (progressIntervalRef.current) {
-        window.clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = undefined;
-      }
-    };
-  }, [currentVideo?.id]);
-
   const initializePlayer = (videoId: string) => {
     if (!playerElementRef.current) {
       console.warn('[Debug] Player element ref not found');
@@ -490,8 +465,6 @@ export const VideoPlayer = () => {
       isInitializing.current = false;
     }
   };
-
-  if (!currentVideo) return null;
 
   return (
     <div className="w-full h-full bg-black">

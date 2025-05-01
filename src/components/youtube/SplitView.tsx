@@ -51,7 +51,11 @@ export const SplitView = () => {
           isPlayerVisible && currentVideo ? 'h-2/5' : 'h-0'
         }`}
       >
-        {currentVideo && <VideoPlayer />}
+        {currentVideo && (
+          <div className="w-full h-full">
+            <VideoPlayer />
+          </div>
+        )}
       </div>
 
       {/* Playlist Section */}

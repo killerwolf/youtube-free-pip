@@ -99,7 +99,12 @@ export interface PlaylistData {
 interface InvidiousVideo {
   videoId: string;
   title: string;
-  videoThumbnails: { quality: string; url: string; width: number; height: number }[];
+  videoThumbnails: {
+    quality: string;
+    url: string;
+    width: number;
+    height: number;
+  }[];
   lengthSeconds: number;
   author: string;
 }
@@ -148,12 +153,16 @@ export async function fetchPlaylistData(
           author: data.author || 'Unknown Author',
           videos: data.videos.map((video: InvidiousVideo) => {
             // Safely access thumbnails using the correct field name
-            console.log(`[Debug] Processing video: ${video.videoId}, Thumbnails raw:`, video.videoThumbnails); // Log raw thumbnails
-            const thumbnails = Array.isArray(video.videoThumbnails) ? video.videoThumbnails : [];
-            const thumbnailUrl = 
-              `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
-            
-            console.log(`[Debug] Video: ${video.videoId}, Final Thumbnail URL:`, thumbnailUrl); // Log final URL
+            console.log(
+              `[Debug] Processing video: ${video.videoId}, Thumbnails raw:`,
+              video.videoThumbnails
+            ); // Log raw thumbnails
+            const thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
+
+            console.log(
+              `[Debug] Video: ${video.videoId}, Final Thumbnail URL:`,
+              thumbnailUrl
+            ); // Log final URL
 
             return {
               id: video.videoId,

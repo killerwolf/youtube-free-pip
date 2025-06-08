@@ -124,23 +124,27 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   const isCurrentlyPlaying = currentVideo?.id === video.id;
 
   // Load saved progress when component mounts
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // biome-ignore lint/correctness/useExhaustiveDependencies: progressData is created inside effect
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('youtube-pip-video-progress');
-      if (saved) {
-        const progressData = JSON.parse(saved);
-        const videoProgress = progressData[video.id] || 0;
-        if (video.lengthSeconds > 0) {
-          setProgress((videoProgress / video.lengthSeconds) * 100);
-        } else {
-          setProgress(0);
+    const loadProgress = () => {
+      try {
+        const saved = localStorage.getItem('youtube-pip-video-progress');
+        if (saved) {
+          const progressData = JSON.parse(saved);
+          const videoProgress = progressData[video.id] || 0;
+          if (video.lengthSeconds > 0) {
+            setProgress((videoProgress / video.lengthSeconds) * 100);
+          } else {
+            setProgress(0);
+          }
         }
+      } catch (error) {
+        console.warn('[Debug] Failed to load video progress:', error);
       }
-    } catch (error) {
-      console.warn('[Debug] Failed to load video progress:', error);
-    }
-  }, [video]);
+    };
+
+    loadProgress();
+  }, [video.id, video.lengthSeconds]); // progressData is created inside effect, not a dependency
 
   const handleVideoSelect = () => {
     setCurrentVideo(video);

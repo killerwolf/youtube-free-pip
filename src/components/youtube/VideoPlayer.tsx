@@ -252,7 +252,8 @@ export const VideoPlayer = () => {
 
   // Initialize player when API is ready and video changes
   useEffect(() => {
-    if (!currentVideo) return;
+    const videoId = currentVideo?.id;
+    if (!videoId) return;
 
     // Ensure the player element exists
     if (!playerElementRef.current) {
@@ -274,15 +275,15 @@ export const VideoPlayer = () => {
     }
 
     if (window.YT) {
-      console.log('[Debug] Initializing player for video:', currentVideo.id);
-      initializePlayer(currentVideo.id);
+      console.log('[Debug] Initializing player for video:', videoId);
+      initializePlayer(videoId);
     } else {
       console.log('[Debug] Waiting for YouTube API to load...');
       window.onYouTubeIframeAPIReady = () => {
         console.log('[Debug] YouTube IFrame API ready, initializing player');
-        // Ensure the video hasn't changed while waiting
-        if (currentVideo && playerElementRef.current) {
-          initializePlayer(currentVideo.id);
+        // Check if the video ID is still the same and element exists
+        if (currentVideo?.id === videoId && playerElementRef.current) {
+          initializePlayer(videoId);
         } else {
           console.log(
             '[Debug] Video changed or element missing after API load'
@@ -313,7 +314,7 @@ export const VideoPlayer = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentVideo?.id]); // Keep currentVideo.id, disable lint for initializePlayer dependency
+  }, [currentVideo?.id]); // Only depends on the video ID for re-initialization
 
   // Function to start progress tracking
   const startProgressTracking = (player: YT.Player, videoId: string) => {

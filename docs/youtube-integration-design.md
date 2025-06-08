@@ -6,105 +6,184 @@ Add Google/YouTube authentication and playlist management to enable users to acc
 ## Technical Architecture
 
 ### 1. Authentication Flow
-```mermaid
-sequenceDiagram
-    User->>App: Click "Sign in with Google"
-    App->>Google OAuth: Redirect to consent screen
-    Google OAuth->>App: Return auth code
-    App->>Google API: Exchange code for tokens
-    Google API->>App: Return access & refresh tokens
-    App->>LocalStorage: Store refresh token
-```
+**STATUS: Not Implemented (By Design)**
+- No user authentication required
+- Works with public YouTube playlists only
+- No API keys or OAuth setup needed
 
 ### 2. API Integration
 
-#### Required Google APIs
-- YouTube Data API v3
-- Google OAuth 2.0
-- Google Identity Services
-
-#### Endpoints to Use
+#### Current API Source: Invidious
 ```typescript
-interface YouTubeEndpoints {
-  playlists: '/youtube/v3/playlists'
-  playlistItems: '/youtube/v3/playlistItems'
-  videos: '/youtube/v3/videos'
+// Multiple fallback instances for reliability
+const invidiousInstances = [
+  'https://invidious.snopyta.org',
+  'https://invidious.kavin.rocks', 
+  'https://vid.puffyan.us',
+  'https://yt.artemislena.eu',
+];
+```
+
+#### Implemented Endpoints
+```typescript
+interface InvidiousEndpoints {
+  playlists: '/api/v1/playlists/{playlistId}'
+  // Note: Only public playlist access, no user playlists
 }
 ```
 
-### 3. Data Models
-
-#### User Authentication
-```typescript
-interface AuthState {
-  accessToken: string | null;
-  refreshToken: string | null;
-  expiresAt: number | null;
-  isAuthenticated: boolean;
-}
-```
+### 3. Data Models (Implemented)
 
 #### Playlist Types
 ```typescript
-interface Playlist {
+interface YouTubeVideo {
   id: string;
   title: string;
-  description: string;
   thumbnailUrl: string;
-  itemCount: number;
+  channelTitle: string;
+  lengthSeconds: number;
 }
 
-interface PlaylistItem {
-  id: string;
-  videoId: string;
+interface PlaylistData {
   title: string;
-  thumbnailUrl: string;
-  position: number;
+  author: string;
+  videos: YouTubeVideo[];
 }
 ```
 
-### 4. Component Architecture
+### 4. Component Architecture (Implemented)
 
-#### New Components
+#### Current Components
 ```
 src/
   components/
-    auth/
-      GoogleAuthButton.tsx
-      AuthProvider.tsx
-    playlists/
-      PlaylistSelector.tsx
-      PlaylistGrid.tsx
-      PlaylistItem.tsx
     youtube/
-      YouTubeService.ts
-      useYouTube.ts
+      PlaylistContext.tsx      # State management
+      PlaylistDetector.tsx     # Auto URL detection
+      PlaylistInput.tsx        # URL input component  
+      SplitView.tsx           # Main layout
+      VideoPlayer.tsx         # YouTube video player
+      YouTubeService.ts       # API service layer
+    auth/                     # Exists but unused
+      AuthContext.tsx         
+      GoogleAuthButton.tsx    
 ```
 
-### 5. State Management
+### 5. State Management (Implemented)
 
-#### Authentication Context
+#### Playlist Context
 ```typescript
-interface AuthContext {
-  isAuthenticated: boolean;
-  login: () => Promise<void>;
-  logout: () => void;
-  refreshAccessToken: () => Promise<void>;
+interface PlaylistContextType {
+  currentPlaylist: PlaylistData | null;
+  currentVideo: YouTubeVideo | null;
+  videos: YouTubeVideo[];
+  isLoading: boolean;
+  error: string | null;
+  watchedVideos: Set<string>;
+  setCurrentVideo: (video: YouTubeVideo) => void;
+  markVideoAsWatched: (videoId: string) => void;
+  // ... other methods
 }
 ```
 
-#### YouTube Data Context
-```typescript
-interface YouTubeContext {
-  playlists: Playlist[];
-  selectedPlaylist: Playlist | null;
-  playlistItems: PlaylistItem[];
-  loading: boolean;
-  error: Error | null;
-  fetchPlaylists: () => Promise<void>;
-  fetchPlaylistItems: (playlistId: string) => Promise<void>;
-}
+## Implementation Status
+
+### ✅ Completed Features
+1. **URL-based Playlist Loading**
+   - Support for multiple YouTube URL formats
+   - Automatic playlist ID extraction
+   - Local storage persistence
+
+2. **Invidious API Integration**
+   - Multiple fallback instances
+   - CORS-free data access
+   - Error handling and retries
+
+3. **Video Player**
+   - YouTube iframe integration
+   - Picture-in-Picture support
+   - Progress tracking and restoration
+
+4. **State Management**
+   - React Context for playlist data
+   - Local storage for persistence
+   - Watch state tracking
+
+### ❌ Not Implemented (Authentication-Based Features)
+1. **Google OAuth Integration**
+   - User authentication flow
+   - Access to private playlists
+   - YouTube Data API v3 usage
+
+2. **Personal YouTube Data**
+   - User's private playlists
+   - Watch history from YouTube
+   - Personal recommendations
+
+## Technical Trade-offs
+
+### Advantages of Current Approach
+- **No setup required**: Users can start immediately
+- **Privacy-focused**: No personal data access
+- **No API limits**: Invidious handles rate limiting
+- **Simple deployment**: No OAuth credentials needed
+
+### Limitations
+- **Public playlists only**: Cannot access private/unlisted playlists
+- **No user sync**: Watch progress only saved locally
+- **Dependent on Invidious**: Relies on third-party API proxy
+- **Limited metadata**: Less rich data than official YouTube API
+
+## Future Migration Path
+
+If Google OAuth integration is desired in the future:
+
+### Required Changes
+1. **Environment Setup**
+   ```env
+   VITE_GOOGLE_CLIENT_ID=your_client_id
+   VITE_GOOGLE_API_KEY=your_api_key
+   ```
+
+2. **Component Updates**
+   - Enable auth components in `src/components/auth/`
+   - Add authentication flow to App.tsx
+   - Implement YouTube Data API service
+
+3. **State Management**
+   - Extend context to handle authenticated state
+   - Add user profile management
+   - Implement token refresh logic
+
+### Migration Benefits
+- Access to private playlists
+- Cross-device sync via Google account
+- Official YouTube API support
+- Rich metadata and features
+
+## Current File Structure
 ```
+src/
+├── components/
+│   ├── auth/              # Ready for OAuth (not used)
+│   └── youtube/           # Current implementation
+│       ├── PlaylistContext.tsx
+│       ├── PlaylistDetector.tsx  
+│       ├── PlaylistInput.tsx
+│       ├── SplitView.tsx
+│       ├── VideoPlayer.tsx
+│       └── YouTubeService.ts
+├── utils/
+│   └── youtube.ts         # URL parsing & API utilities
+└── App.tsx               # Login-less implementation
+```
+
+## Recommendations
+
+1. **Keep current approach** for simplicity and privacy
+2. **Add OAuth as optional enhancement** for power users
+3. **Implement hybrid mode**: Support both authenticated and public access
+4. **Consider Invidious reliability**: Monitor API availability
 
 ### 6. Implementation Phases
 

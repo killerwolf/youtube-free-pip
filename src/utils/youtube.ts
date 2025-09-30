@@ -17,12 +17,16 @@ export function extractYouTubeVideoId(url: string): string | null {
 const YOUTUBE_PLAYLIST_PATTERNS = [
   // Standard playlist URL
   /(?:https?:\/\/)?(?:www\.)?youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/,
-  // Playlist ID only
-  /^([a-zA-Z0-9_-]{34})$/,
+  // Playlist ID only (with standard length validation)
+  /^([a-zA-Z0-9_-]{13,}[a-zA-Z0-9_-]*)$/,
   // Mobile share URL
   /(?:https?:\/\/)?youtu\.be\/.*[?&]list=([a-zA-Z0-9_-]+)/,
   // Watch URL with playlist
   /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?.*[?&]list=([a-zA-Z0-9_-]+)/,
+  // Playlist URL with additional parameters (si, etc.)
+  /(?:https?:\/\/)?(?:www\.)?youtube\.com\/playlist\?.*[?&]list=([a-zA-Z0-9_-]+)/,
+  // Watch URL with list parameter first
+  /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?list=([a-zA-Z0-9_-]+)/,
 ] as const;
 
 /**
@@ -118,12 +122,13 @@ export async function fetchPlaylistData(
 ): Promise<PlaylistData> {
   try {
     // Use Invidious API to fetch playlist data
-    // We'll try multiple instances in case some are down
+    // Updated with working instances that have proper CORS support
     const invidiousInstances = [
+      'https://inv.nadeko.net',
+      'https://invidious.nerdvpn.de',
+      'https://yewtu.be',
       'https://invidious.snopyta.org',
       'https://invidious.kavin.rocks',
-      'https://vid.puffyan.us',
-      'https://yt.artemislena.eu',
     ];
 
     let lastError: Error | null = null;
@@ -157,7 +162,30 @@ export async function fetchPlaylistData(
               `[Debug] Processing video: ${video.videoId}, Thumbnails raw:`,
               video.videoThumbnails
             ); // Log raw thumbnails
-            const thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
+            
+            // Try to get the best available thumbnail, fallback to YouTube default
+            let thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
+            
+            if (video.videoThumbnails && video.videoThumbnails.length > 0) {
+              // Look for medium quality first, then high, then default
+              const mediumThumb = video.videoThumbnails.find(t => t.quality === 'medium');
+              const highThumb = video.videoThumbnails.find(t => t.quality === 'high');
+              const defaultThumb = video.videoThumbnails.find(t => t.quality === 'default');
+              
+              if (mediumThumb) {
+                thumbnailUrl = mediumThumb.url.startsWith('http') 
+                  ? mediumThumb.url 
+                  : `https://inv.nadeko.net${mediumThumb.url}`;
+              } else if (highThumb) {
+                thumbnailUrl = highThumb.url.startsWith('http') 
+                  ? highThumb.url 
+                  : `https://inv.nadeko.net${highThumb.url}`;
+              } else if (defaultThumb) {
+                thumbnailUrl = defaultThumb.url.startsWith('http') 
+                  ? defaultThumb.url 
+                  : `https://inv.nadeko.net${defaultThumb.url}`;
+              }
+            }
 
             console.log(
               `[Debug] Video: ${video.videoId}, Final Thumbnail URL:`,

@@ -1,17 +1,21 @@
 import { Toaster } from 'react-hot-toast';
 import { PlaylistProvider } from './components/youtube/PlaylistContext';
 import { PlaylistDetector } from './components/youtube/PlaylistDetector';
-import { SplitView } from './components/youtube/SplitView';
+import { PlaylistRouter } from './components/youtube/PlaylistRouter';
+import { URLPlaylistLoader } from './components/youtube/URLPlaylistLoader';
 
 function App() {
   return (
     <PlaylistProvider>
       <div className="min-h-screen bg-gray-900 text-white">
-        {/* Playlist auto-detection */}
+        {/* URL-based playlist loading */}
+        <URLPlaylistLoader />
+
+        {/* Clipboard/selection playlist auto-detection */}
         <PlaylistDetector />
 
-        {/* Main content */}
-        <SplitView />
+        {/* Main content with routing */}
+        <PlaylistRouter />
 
         {/* Toast notifications */}
         <Toaster />

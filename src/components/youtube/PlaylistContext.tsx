@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { extractPlaylistId, fetchPlaylistData } from '../../utils/youtube';
+import {
+  extractPlaylistId,
+  fetchPlaylistData,
+  normalizePlaylistUrl,
+} from '../../utils/youtube';
 
 export interface Video {
   id: string;
@@ -35,10 +39,39 @@ const LOCAL_STORAGE_KEYS = {
   PLAYLIST_AUTHOR: 'youtube-pip-playlist-author',
 } as const;
 
+// Helper function to get playlist URL from current page URL
+const getPlaylistUrlFromPageUrl = (): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const playlistIdParam = searchParams.get('list');
+  const fullUrlParam = searchParams.get('url');
+
+  if (playlistIdParam) {
+    const normalized = normalizePlaylistUrl(playlistIdParam);
+    if (normalized) return normalized;
+  }
+
+  if (fullUrlParam) {
+    const playlistId = extractPlaylistId(fullUrlParam);
+    if (playlistId) {
+      return normalizePlaylistUrl(fullUrlParam);
+    }
+  }
+
+  return null;
+};
+
 export function PlaylistProvider({ children }: { children: React.ReactNode }) {
-  // Initialize state from localStorage
+  // Initialize state: URL parameters take precedence over localStorage
   const [playlistUrl, setPlaylistUrlState] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
+      // First check for URL parameters
+      const urlPlaylist = getPlaylistUrlFromPageUrl();
+      if (urlPlaylist) {
+        return urlPlaylist;
+      }
+      // Fallback to localStorage
       return localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL);
     }
     return null;
@@ -128,10 +161,22 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     loadPlaylist();
   }, [playlistUrl]);
 
-  // Persist state changes to localStorage
+  // Persist state changes to localStorage and clean URL parameters if needed
   useEffect(() => {
     if (playlistUrl) {
       localStorage.setItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL, playlistUrl);
+
+      // If this playlist came from URL parameters, clean the URL
+      const urlPlaylist = getPlaylistUrlFromPageUrl();
+      if (urlPlaylist === playlistUrl) {
+        // Clean URL parameters after successful loading
+        const newUrl = new URL(window.location.href);
+        if (newUrl.searchParams.has('list') || newUrl.searchParams.has('url')) {
+          newUrl.searchParams.delete('list');
+          newUrl.searchParams.delete('url');
+          window.history.replaceState({}, '', newUrl.toString());
+        }
+      }
     } else {
       localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL);
     }

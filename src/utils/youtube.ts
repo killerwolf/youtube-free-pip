@@ -162,27 +162,33 @@ export async function fetchPlaylistData(
               `[Debug] Processing video: ${video.videoId}, Thumbnails raw:`,
               video.videoThumbnails
             ); // Log raw thumbnails
-            
+
             // Try to get the best available thumbnail, fallback to YouTube default
             let thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
-            
+
             if (video.videoThumbnails && video.videoThumbnails.length > 0) {
               // Look for medium quality first, then high, then default
-              const mediumThumb = video.videoThumbnails.find(t => t.quality === 'medium');
-              const highThumb = video.videoThumbnails.find(t => t.quality === 'high');
-              const defaultThumb = video.videoThumbnails.find(t => t.quality === 'default');
-              
+              const mediumThumb = video.videoThumbnails.find(
+                (t) => t.quality === 'medium'
+              );
+              const highThumb = video.videoThumbnails.find(
+                (t) => t.quality === 'high'
+              );
+              const defaultThumb = video.videoThumbnails.find(
+                (t) => t.quality === 'default'
+              );
+
               if (mediumThumb) {
-                thumbnailUrl = mediumThumb.url.startsWith('http') 
-                  ? mediumThumb.url 
+                thumbnailUrl = mediumThumb.url.startsWith('http')
+                  ? mediumThumb.url
                   : `https://inv.nadeko.net${mediumThumb.url}`;
               } else if (highThumb) {
-                thumbnailUrl = highThumb.url.startsWith('http') 
-                  ? highThumb.url 
+                thumbnailUrl = highThumb.url.startsWith('http')
+                  ? highThumb.url
                   : `https://inv.nadeko.net${highThumb.url}`;
               } else if (defaultThumb) {
-                thumbnailUrl = defaultThumb.url.startsWith('http') 
-                  ? defaultThumb.url 
+                thumbnailUrl = defaultThumb.url.startsWith('http')
+                  ? defaultThumb.url
                   : `https://inv.nadeko.net${defaultThumb.url}`;
               }
             }

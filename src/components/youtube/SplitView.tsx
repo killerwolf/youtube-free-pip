@@ -124,7 +124,6 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   const isCurrentlyPlaying = currentVideo?.id === video.id;
 
   // Load saved progress when component mounts
-  // biome-ignore lint/correctness/useExhaustiveDependencies: progressData is created inside effect
   useEffect(() => {
     const loadProgress = () => {
       try {
@@ -161,62 +160,60 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
 
   return (
     <div
-      className={`relative flex cursor-pointer items-center space-x-4 rounded-lg p-2
+      className={`relative flex items-center space-x-4 rounded-lg p-2
         ${isWatched ? 'opacity-60' : 'hover:bg-gray-800'}
         ${isCurrentlyPlaying ? 'bg-gray-800 ring-1 ring-blue-500' : ''}`}
-      onClick={handleVideoSelect}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          handleVideoSelect();
-        }
-      }}
-      role="button"
-      tabIndex={0}
     >
       {/* Now Playing Indicator */}
       {isCurrentlyPlaying && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r" />
       )}
 
-      {/* Thumbnail with Progress Bar */}
-      <div className="relative w-32 h-18">
-        <img
-          src={video.thumbnail}
-          alt={video.title}
-          className="rounded object-cover w-full h-full"
-        />
-        {/* Duration */}
-        <span className="absolute bottom-1 right-1 bg-black bg-opacity-80 px-1 rounded text-xs">
-          {formatDuration(video.lengthSeconds)}
-        </span>
-        {/* YouTube-style progress bar */}
-        {progress > 0 && !isWatched && (
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800">
-            <div
-              className="h-full bg-red-600"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        )}
-        {/* Playing Overlay */}
-        {isCurrentlyPlaying && (
-          <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
-            NOW PLAYING
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={handleVideoSelect}
+        className="flex flex-1 min-w-0 items-center space-x-4 text-left"
+      >
+        {/* Thumbnail with Progress Bar */}
+        <div className="relative w-32 h-18 shrink-0">
+          <img
+            src={video.thumbnail}
+            alt={video.title}
+            className="rounded object-cover w-full h-full"
+          />
+          {/* Duration */}
+          <span className="absolute bottom-1 right-1 bg-black bg-opacity-80 px-1 rounded text-xs">
+            {formatDuration(video.lengthSeconds)}
+          </span>
+          {/* YouTube-style progress bar */}
+          {progress > 0 && !isWatched && (
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800">
+              <div
+                className="h-full bg-red-600"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+          {/* Playing Overlay */}
+          {isCurrentlyPlaying && (
+            <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
+              NOW PLAYING
+            </div>
+          )}
+        </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <h3
-          className={`font-medium line-clamp-2 ${
-            isCurrentlyPlaying ? 'text-blue-400' : ''
-          }`}
-        >
-          {video.title}
-        </h3>
-        <p className="text-sm text-gray-400 truncate">{video.channelTitle}</p>
-      </div>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h3
+            className={`font-medium line-clamp-2 ${
+              isCurrentlyPlaying ? 'text-blue-400' : ''
+            }`}
+          >
+            {video.title}
+          </h3>
+          <p className="text-sm text-gray-400 truncate">{video.channelTitle}</p>
+        </div>
+      </button>
 
       {/* Watch Toggle */}
       <button

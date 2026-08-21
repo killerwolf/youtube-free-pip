@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { debugLog } from '../../utils/debugLog';
 import {
   extractPlaylistId,
   fetchPlaylistData,
@@ -222,22 +223,12 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
   };
 
   const markVideoAsWatched = (videoId: string) => {
-    console.log(
-      '[Debug] Marking video as watched:',
-      videoId,
-      'Caller:',
-      new Error().stack
-    );
+    debugLog('[Debug] Marking video as watched:', videoId);
     setWatchedVideos((prev) => new Set([...prev, videoId]));
   };
 
   const unmarkVideoAsWatched = (videoId: string) => {
-    console.log(
-      '[Debug] Unmarking video as watched:',
-      videoId,
-      'Caller:',
-      new Error().stack
-    );
+    debugLog('[Debug] Unmarking video as watched:', videoId);
     setWatchedVideos((prev) => {
       const next = new Set(prev);
       next.delete(videoId);
@@ -246,7 +237,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setCurrentVideo = (video: Video | null) => {
-    console.log('[Debug] Setting current video:', video?.id);
+    debugLog('[Debug] Setting current video:', video?.id);
     setCurrentVideoState(video);
     // Removed automatic marking as watched when selecting a video
   };
@@ -280,7 +271,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    console.log('[Debug] Playlist and all related data cleared');
+    debugLog('[Debug] Playlist and all related data cleared');
   };
 
   return (

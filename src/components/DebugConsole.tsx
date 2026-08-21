@@ -243,4 +243,4 @@ function DebugConsole() {
 
 const useDebug = () => useContext(DebugContext);
 
-export { DebugProvider, DebugConsole, useDebug };
+export { DebugConsole, DebugProvider, useDebug };

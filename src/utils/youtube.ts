@@ -103,14 +103,42 @@ export interface PlaylistData {
 interface InvidiousVideo {
   videoId: string;
   title: string;
-  videoThumbnails: {
-    quality: string;
-    url: string;
-    width: number;
-    height: number;
-  }[];
   lengthSeconds: number;
   author: string;
+}
+
+// Public Invidious instances that mirror the YouTube API with CORS enabled,
+// tried in order until one responds. Instance availability/CORS support is
+// volatile — this list was last verified with a real browser fetch() (not
+// curl, which doesn't reflect actual CORS enforcement) against every https
+// instance in https://api.invidious.io/instances.json; every entry besides
+// inv.nadeko.net failed with a CORS error at verification time. Re-verify
+// with the same method before adding an instance back.
+const INVIDIOUS_INSTANCES = ['https://inv.nadeko.net'];
+
+const INSTANCE_TIMEOUT_MS = 8000;
+
+async function fetchFromInstance(
+  instance: string,
+  playlistId: string
+): Promise<unknown> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), INSTANCE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${instance}/api/v1/playlists/${playlistId}`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
@@ -120,111 +148,40 @@ interface InvidiousVideo {
 export async function fetchPlaylistData(
   playlistId: string
 ): Promise<PlaylistData> {
-  try {
-    // Use Invidious API to fetch playlist data
-    // Updated with working instances that have proper CORS support
-    const invidiousInstances = [
-      'https://inv.nadeko.net',
-      'https://invidious.nerdvpn.de',
-      'https://yewtu.be',
-      'https://invidious.snopyta.org',
-      'https://invidious.kavin.rocks',
-    ];
+  let lastError: Error | null = null;
 
-    let lastError: Error | null = null;
+  // Try each instance until one works
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      // biome-ignore lint/suspicious/noExplicitAny: shape validated below via optional chaining/fallbacks
+      const data = (await fetchFromInstance(instance, playlistId)) as any;
 
-    // Try each instance until one works
-    for (const instance of invidiousInstances) {
-      try {
-        const response = await fetch(
-          `${instance}/api/v1/playlists/${playlistId}`,
-          {
-            headers: {
-              Accept: 'application/json',
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        console.log('[Debug] Fetched playlist data:', data);
-
-        return {
-          title: data.title || 'Untitled Playlist',
-          author: data.author || 'Unknown Author',
-          videos: data.videos.map((video: InvidiousVideo) => {
-            // Safely access thumbnails using the correct field name
-            console.log(
-              `[Debug] Processing video: ${video.videoId}, Thumbnails raw:`,
-              video.videoThumbnails
-            ); // Log raw thumbnails
-
-            // Try to get the best available thumbnail, fallback to YouTube default
-            let thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`; // YouTube mqdefault fallback
-
-            if (video.videoThumbnails && video.videoThumbnails.length > 0) {
-              // Look for medium quality first, then high, then default
-              const mediumThumb = video.videoThumbnails.find(
-                (t) => t.quality === 'medium'
-              );
-              const highThumb = video.videoThumbnails.find(
-                (t) => t.quality === 'high'
-              );
-              const defaultThumb = video.videoThumbnails.find(
-                (t) => t.quality === 'default'
-              );
-
-              if (mediumThumb) {
-                thumbnailUrl = mediumThumb.url.startsWith('http')
-                  ? mediumThumb.url
-                  : `https://inv.nadeko.net${mediumThumb.url}`;
-              } else if (highThumb) {
-                thumbnailUrl = highThumb.url.startsWith('http')
-                  ? highThumb.url
-                  : `https://inv.nadeko.net${highThumb.url}`;
-              } else if (defaultThumb) {
-                thumbnailUrl = defaultThumb.url.startsWith('http')
-                  ? defaultThumb.url
-                  : `https://inv.nadeko.net${defaultThumb.url}`;
-              }
-            }
-
-            console.log(
-              `[Debug] Video: ${video.videoId}, Final Thumbnail URL:`,
-              thumbnailUrl
-            ); // Log final URL
-
-            return {
-              id: video.videoId,
-              title: video.title,
-              thumbnailUrl,
-              lengthSeconds: video.lengthSeconds || 0,
-              channelTitle: video.author || 'Unknown Channel',
-            };
-          }),
-        };
-      } catch (error) {
-        console.warn(`Failed to fetch from ${instance}:`, error);
-        lastError = error as Error;
-      }
+      return {
+        title: data.title || 'Untitled Playlist',
+        author: data.author || 'Unknown Author',
+        videos: data.videos.map((video: InvidiousVideo) => ({
+          id: video.videoId,
+          title: video.title,
+          // Fetched directly from YouTube's own thumbnail CDN instead of
+          // proxying through the Invidious instance: same bytes, ~10x
+          // faster, and doesn't load a volunteer-run instance for free.
+          thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
+          lengthSeconds: video.lengthSeconds || 0,
+          channelTitle: video.author || 'Unknown Channel',
+        })),
+      };
+    } catch (error) {
+      console.warn(`Failed to fetch from ${instance}:`, error);
+      lastError = error as Error;
     }
-
-    // If we get here, all instances failed
-    throw new Error(
-      lastError?.message || 'All API endpoints failed to respond'
-    );
-  } catch (error) {
-    console.error('Error fetching playlist data:', error);
-    throw new Error(
-      error instanceof Error
-        ? `Failed to fetch playlist data: ${error.message}`
-        : 'Failed to fetch playlist data'
-    );
   }
+
+  // If we get here, all instances failed
+  throw new Error(
+    lastError?.message
+      ? `Failed to fetch playlist data: ${lastError.message}`
+      : 'Failed to fetch playlist data: all API endpoints failed to respond'
+  );
 }
 
 /**

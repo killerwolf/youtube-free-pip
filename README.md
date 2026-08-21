@@ -2,32 +2,37 @@
 
 [![CI](https://github.com/killerwolf/youtube-free-pip/actions/workflows/ci.yml/badge.svg)](https://github.com/killerwolf/youtube-free-pip/actions/workflows/ci.yml)
 
-A modern, open-source YouTube client built with React that enables Picture-in-Picture mode for any YouTube video, along with easy playlist management and video history tracking.
+A modern, open-source YouTube playlist viewer with Picture-in-Picture support. No authentication required - just paste a YouTube playlist URL and start watching.
 
 ## Features
 
 - 🎯 **Picture-in-Picture Support**: Watch YouTube videos in PiP mode while browsing other content
-- 🔐 **Google Account Integration**: Access your YouTube playlists and watch history
+- 🔗 **No Login Required**: Just paste any public YouTube playlist URL
 - 📱 **Responsive Design**: Works on desktop and mobile browsers
 - 🎯 **Zero Ads**: Clean, distraction-free video watching experience
-- 📑 **Playlist Management**: Browse and play videos from your playlists
-- 🕒 **Watch History**: Keep track of your viewing history
-- 🔄 **Watch Later**: Manage your Watch Later list
+- 📑 **Playlist Management**: Browse and play videos from public playlists
+- 🕒 **Watch Progress**: Track video progress with visual indicators
+- 💾 **Local Storage**: Your playlist preference is saved locally
 
 ## Getting Started
 
-1. Visit [YouTube Free PiP](https://youtube-free-pip.netlify.app)
-2. Sign in with your Google account
-3. Paste a YouTube video URL or select from your playlists
-4. Click the Picture-in-Picture button to watch in floating mode
+1. Visit [YouTube Free PiP](https://free-yt-pip.netlify.app)
+2. Paste a YouTube playlist URL (e.g., `https://www.youtube.com/playlist?list=PLxxxxxx`)
+3. Browse the video grid and click any video to start watching
+4. Use the Picture-in-Picture button to watch in floating mode
+
+## Supported URL Formats
+
+- Playlist URLs: `https://www.youtube.com/playlist?list=PLAYLIST_ID`
+- Video in playlist: `https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID`
+- Playlist ID only: `PLxxxxxx`
 
 ## Development Setup
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (see `.nvmrc` for the exact version — currently the latest LTS)
 - npm or yarn
-- Google Cloud Console account
 
 ### Local Development
 
@@ -42,25 +47,7 @@ cd youtube-free-pip
 npm install
 ```
 
-3. Create a `.env` file from the example:
-```bash
-cp .env.example .env
-```
-
-4. Set up Google OAuth credentials:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-   - Create a new project or select an existing one
-   - Enable the YouTube Data API v3
-   - Create OAuth 2.0 credentials
-   - Add these authorized URIs:
-     * JavaScript origins: `http://localhost:5173`
-     * Redirect URIs: `http://localhost:5173/auth/callback`
-   - Copy the credentials to your `.env` file:
-     * `VITE_GOOGLE_CLIENT_ID`
-     * `VITE_GOOGLE_CLIENT_SECRET`
-     * `VITE_GOOGLE_API_KEY`
-
-5. Start the development server:
+3. Start the development server:
 ```bash
 npm run dev
 ```
@@ -79,12 +66,28 @@ npm run dev
 
 ```
 src/
-├── components/           # React components
-│   ├── auth/            # Authentication components
-│   └── youtube/         # YouTube integration components
-├── utils/               # Utility functions
-└── App.tsx             # Main application component
+├── components/
+│   ├── DebugConsole.tsx           # Debug logging panel (?debug=1)
+│   └── youtube/
+│       ├── PlaylistContext.tsx    # State management
+│       ├── PlaylistDetector.tsx   # Selection-based URL detection
+│       ├── PlaylistHeader.tsx     # Playlist title, share, clear
+│       ├── PlaylistInput.tsx      # URL input component
+│       ├── PlaylistRouter.tsx     # /playlist/:id routing
+│       ├── SplitView.tsx          # Main layout
+│       └── VideoPlayer.tsx        # YouTube video player
+├── utils/
+│   ├── debugLog.ts           # console.log gated behind import.meta.env.DEV
+│   └── youtube.ts            # YouTube API utilities
+└── App.tsx                   # Main application component
 ```
+
+## Technical Implementation
+
+- **Data Source**: Uses the [Invidious](https://invidious.io/) API as a CORS-free proxy to YouTube
+- **No API Keys**: No authentication or API keys required
+- **Local Storage**: Playlist URLs saved locally for persistence
+- **Progress Tracking**: Video watch progress saved per device
 
 ## Contributing
 
@@ -98,11 +101,6 @@ We welcome contributions! Here's how you can help:
 6. Push to your branch: `git push origin feature/your-feature-name`
 7. Create a Pull Request
 
-Your Pull Request will automatically trigger our CI pipeline which runs:
-- TypeScript type checking
-- Biome linting and formatting checks
-- Build verification
-
 ### Code Style
 
 We use [Biome](https://biomejs.dev/) for linting and formatting. Please ensure your code follows our style guide by running:
@@ -112,20 +110,14 @@ npm run format
 npm run lint
 ```
 
-### Documentation
-
-- Comment your code where necessary
-- Update the README if you add new features or change existing ones
-- Add JSDoc comments for exported functions and components
-
 ## Technical Details
 
-- Built with React 18 and TypeScript
+- Built with React 19 and TypeScript
 - Uses Vite for fast development and building
-- Styled with Tailwind CSS
-- YouTube Data API v3 integration
-- Google OAuth 2.0 authentication
+- Styled with Tailwind CSS and Lucide React icons
+- Invidious API integration for YouTube data
 - Picture-in-Picture Web API
+- Local storage for playlist persistence
 
 ## License
 
@@ -133,7 +125,7 @@ This project is open source and available under the MIT License.
 
 ## Acknowledgments
 
-- [YouTube Data API](https://developers.google.com/youtube/v3)
+- [Invidious](https://invidious.io/) - Privacy-focused YouTube frontend
 - [Picture-in-Picture Web API](https://w3c.github.io/picture-in-picture/)
 - [React](https://reactjs.org/)
 - [Vite](https://vitejs.dev/)

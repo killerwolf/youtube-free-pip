@@ -11,11 +11,17 @@ export const SplitView = () => {
     usePlaylist();
   const [isPlayerVisible, setIsPlayerVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-hide player on scroll down, show on scroll up
+  // Auto-hide player on scroll down, show on scroll up.
+  // The playlist section scrolls within its own overflow-y-auto container,
+  // not the window, so the listener has to be attached there.
   useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      const currentScrollY = scrollContainer.scrollTop;
       if (currentScrollY > lastScrollY.current) {
         setIsPlayerVisible(false);
       } else {
@@ -24,8 +30,10 @@ export const SplitView = () => {
       lastScrollY.current = currentScrollY;
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll, {
+      passive: true,
+    });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Separate videos into unwatched and watched
@@ -61,6 +69,7 @@ export const SplitView = () => {
 
       {/* Playlist Section */}
       <div
+        ref={scrollContainerRef}
         className={`flex-1 overflow-y-auto transition-all duration-300 ${
           isPlayerVisible && currentVideo ? 'h-3/5' : 'h-screen'
         }`}
@@ -123,7 +132,10 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   const [progress, setProgress] = useState(0);
   const isCurrentlyPlaying = currentVideo?.id === video.id;
 
-  // Load saved progress when component mounts
+  // Load saved progress on mount/video change, and keep refreshing it while
+  // this video is the one currently playing — VideoPlayer saves progress to
+  // localStorage every 5s while playing, so without this the bar would stay
+  // frozen at whatever it was on mount until the page is reloaded.
   useEffect(() => {
     const loadProgress = () => {
       try {
@@ -143,7 +155,12 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
     };
 
     loadProgress();
-  }, [video.id, video.lengthSeconds]); // progressData is created inside effect, not a dependency
+
+    if (!isCurrentlyPlaying) return;
+
+    const interval = setInterval(loadProgress, 5000);
+    return () => clearInterval(interval);
+  }, [video.id, video.lengthSeconds, isCurrentlyPlaying]);
 
   const handleVideoSelect = () => {
     setCurrentVideo(video);

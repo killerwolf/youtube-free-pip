@@ -1,9 +1,11 @@
 import { Check, Share2, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { extractPlaylistId } from '../../utils/youtube';
+import {
+  extractPlaylistId,
+  generatePlaylistShareUrl,
+} from '../../utils/youtube';
 import { usePlaylist } from './PlaylistContext';
-import { generatePlaylistShareUrl } from './URLPlaylistLoader';
 
 export function PlaylistHeader() {
   const {

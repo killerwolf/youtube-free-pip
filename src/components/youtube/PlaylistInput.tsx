@@ -1,6 +1,6 @@
 import { Clipboard } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { extractPlaylistId } from '../../utils/youtube';
+import { normalizePlaylistUrl } from '../../utils/youtube';
 import { usePlaylist } from './PlaylistContext';
 
 export function PlaylistInput() {
@@ -18,15 +18,15 @@ export function PlaylistInput() {
   }, []);
 
   const handleSubmit = (url: string) => {
-    const playlistId = extractPlaylistId(url.trim());
+    const normalizedUrl = normalizePlaylistUrl(url.trim());
 
-    if (!playlistId) {
+    if (!normalizedUrl) {
       setError('Invalid YouTube playlist URL');
       return;
     }
 
     setError(null);
-    setPlaylistUrl(playlistId);
+    setPlaylistUrl(normalizedUrl);
     setInputUrl('');
   };
 
@@ -74,7 +74,7 @@ export function PlaylistInput() {
         <div className="relative">
           <input
             ref={inputRef}
-            type="url"
+            type="text"
             inputMode="url"
             autoComplete="off"
             autoCapitalize="off"

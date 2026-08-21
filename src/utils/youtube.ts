@@ -17,8 +17,12 @@ export function extractYouTubeVideoId(url: string): string | null {
 const YOUTUBE_PLAYLIST_PATTERNS = [
   // Standard playlist URL
   /(?:https?:\/\/)?(?:www\.)?youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/,
-  // Playlist ID only (with standard length validation)
-  /^([a-zA-Z0-9_-]{13,}[a-zA-Z0-9_-]*)$/,
+  // Playlist ID only — must start with a known YouTube playlist prefix
+  // (PL: user playlist, UU: uploads, LL: likes, WL: watch later,
+  // FL: favorites, RD: mix/radio, OL: auto-generated album), otherwise
+  // any 13+ char alphanumeric string (an API key, a hash, ...) would be
+  // treated as a valid playlist ID.
+  /^((?:PL|UU|LL|WL|FL|RD|OL)[a-zA-Z0-9_-]{10,})$/,
   // Mobile share URL
   /(?:https?:\/\/)?youtu\.be\/.*[?&]list=([a-zA-Z0-9_-]+)/,
   // Watch URL with playlist
@@ -84,6 +88,17 @@ export const isValidPlaylistInput = (text: string): boolean => {
 export const normalizePlaylistUrl = (input: string): string | null => {
   const playlistId = extractPlaylistId(input);
   return playlistId ? formatPlaylistUrl(playlistId) : null;
+};
+
+/**
+ * Generates this app's own shareable URL for a playlist (?list=<id>)
+ */
+export const generatePlaylistShareUrl = (
+  playlistId: string,
+  baseUrl?: string
+): string => {
+  const base = baseUrl || window.location.origin;
+  return `${base}?list=${playlistId}`;
 };
 
 export interface YouTubeVideo {

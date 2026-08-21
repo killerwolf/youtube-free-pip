@@ -100,6 +100,7 @@ export const VideoPlayer = () => {
     duration: 0,
   });
   const isInitializing = useRef<boolean>(false);
+  const readyCheckIntervalRef = useRef<number>();
 
   // Load saved progress from localStorage
   const getSavedProgress = (videoId: string): number => {
@@ -282,10 +283,14 @@ export const VideoPlayer = () => {
 
     return () => {
       debugLog('[Debug] Cleanup effect running for video change');
-      // Clear interval
+      // Clear intervals
       if (progressIntervalRef.current) {
         window.clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = undefined;
+      }
+      if (readyCheckIntervalRef.current) {
+        window.clearInterval(readyCheckIntervalRef.current);
+        readyCheckIntervalRef.current = undefined;
       }
       // Destroy player instance on cleanup
       if (playerRef.current) {
@@ -339,10 +344,15 @@ export const VideoPlayer = () => {
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
       let attempts = 0;
-      const checkInterval = setInterval(() => {
+      // Stored in a ref (rather than a local variable) so the effect's
+      // cleanup can clear it if the video changes or the component unmounts
+      // while this is still polling — otherwise it keeps ticking every
+      // 100ms for up to 5s per abandoned video switch.
+      readyCheckIntervalRef.current = window.setInterval(() => {
         try {
           if (isPlayerReady(player)) {
-            clearInterval(checkInterval);
+            window.clearInterval(readyCheckIntervalRef.current);
+            readyCheckIntervalRef.current = undefined;
             const duration = player.getDuration();
             const currentTime = player.getCurrentTime();
             debugLog(
@@ -355,14 +365,16 @@ export const VideoPlayer = () => {
             attempts++;
             if (attempts >= 50) {
               // 5 seconds timeout
-              clearInterval(checkInterval);
+              window.clearInterval(readyCheckIntervalRef.current);
+              readyCheckIntervalRef.current = undefined;
               reject(
                 new Error(`Player failed to become ready for video ${videoId}`)
               );
             }
           }
         } catch (error) {
-          clearInterval(checkInterval);
+          window.clearInterval(readyCheckIntervalRef.current);
+          readyCheckIntervalRef.current = undefined;
           reject(error);
         }
       }, 100);

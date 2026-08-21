@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { debugLog } from '../../utils/debugLog';
 import { usePlaylist } from './PlaylistContext';
 
 declare global {
@@ -115,7 +116,7 @@ export const VideoPlayer = () => {
           return 0;
         }
         const savedTime = progress[videoId] || 0;
-        console.log(
+        debugLog(
           `[Debug] Loading saved progress for video ${videoId}: ${savedTime} seconds`
         );
         return Math.max(0, Math.floor(savedTime)); // Ensure non-negative integer
@@ -129,7 +130,7 @@ export const VideoPlayer = () => {
         console.error('[Debug] Failed to clear corrupted progress data:', e);
       }
     }
-    console.log(`[Debug] No saved progress found for video ${videoId}`);
+    debugLog(`[Debug] No saved progress found for video ${videoId}`);
     return 0;
   };
 
@@ -148,7 +149,7 @@ export const VideoPlayer = () => {
     const remainingTime = duration - timestamp;
     const progress = (timestamp / duration) * 100;
 
-    console.log(
+    debugLog(
       `[Debug] Watch status check for ${currentVideo.id}:`,
       `\n- Current time: ${timestamp.toFixed(1)}s`,
       `\n- Duration: ${duration.toFixed(1)}s`,
@@ -158,7 +159,7 @@ export const VideoPlayer = () => {
     );
 
     if (remainingTime <= threshold) {
-      console.log(
+      debugLog(
         '[Debug] Auto-marking video as watched:',
         `\n- Video ID: ${currentVideo.id}`,
         `\n- Title: ${currentVideo.title}`,
@@ -189,7 +190,7 @@ export const VideoPlayer = () => {
       document.body.appendChild(notification);
       setTimeout(() => notification.remove(), 2000);
     } else {
-      console.log(
+      debugLog(
         '[Debug] Not marking as watched yet:',
         `\n- Remaining time (${remainingTime.toFixed(
           1
@@ -220,19 +221,18 @@ export const VideoPlayer = () => {
 
   // Load YouTube IFrame API
   useEffect(() => {
-    console.log('[Debug] useEffect for YouTube API loading triggered');
+    debugLog('[Debug] useEffect for YouTube API loading triggered');
     if (!window.YT) {
-      console.log('[Debug] YouTube IFrame API not found, loading script...');
+      debugLog('[Debug] YouTube IFrame API not found, loading script...');
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       tag.onerror = (e) =>
         console.error('[Debug] Error loading YouTube IFrame API:', e);
-      tag.onload = () =>
-        console.log('[Debug] YouTube IFrame API script loaded');
+      tag.onload = () => debugLog('[Debug] YouTube IFrame API script loaded');
       const firstScriptTag = document.getElementsByTagName('script')[0];
       if (firstScriptTag?.parentNode) {
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        console.log('[Debug] YouTube IFrame API script injected into DOM');
+        debugLog('[Debug] YouTube IFrame API script injected into DOM');
       } else {
         console.error('[Debug] Could not find parent node to inject script');
       }
@@ -255,7 +255,7 @@ export const VideoPlayer = () => {
 
     // Destroy existing player instance before creating a new one
     if (playerRef.current) {
-      console.log('[Debug] Destroying existing player instance');
+      debugLog('[Debug] Destroying existing player instance');
       try {
         playerRef.current.destroy();
         playerRef.current = null; // Clear the ref
@@ -265,25 +265,23 @@ export const VideoPlayer = () => {
     }
 
     if (window.YT) {
-      console.log('[Debug] Initializing player for video:', videoId);
+      debugLog('[Debug] Initializing player for video:', videoId);
       initializePlayer(videoId);
     } else {
-      console.log('[Debug] Waiting for YouTube API to load...');
+      debugLog('[Debug] Waiting for YouTube API to load...');
       window.onYouTubeIframeAPIReady = () => {
-        console.log('[Debug] YouTube IFrame API ready, initializing player');
+        debugLog('[Debug] YouTube IFrame API ready, initializing player');
         // Check if the video ID is still the same and element exists
         if (currentVideo?.id === videoId && playerElementRef.current) {
           initializePlayer(videoId);
         } else {
-          console.log(
-            '[Debug] Video changed or element missing after API load'
-          );
+          debugLog('[Debug] Video changed or element missing after API load');
         }
       };
     }
 
     return () => {
-      console.log('[Debug] Cleanup effect running for video change');
+      debugLog('[Debug] Cleanup effect running for video change');
       // Clear interval
       if (progressIntervalRef.current) {
         window.clearInterval(progressIntervalRef.current);
@@ -291,7 +289,7 @@ export const VideoPlayer = () => {
       }
       // Destroy player instance on cleanup
       if (playerRef.current) {
-        console.log('[Debug] Destroying player instance in cleanup');
+        debugLog('[Debug] Destroying player instance in cleanup');
         try {
           playerRef.current.destroy();
           playerRef.current = null;
@@ -316,7 +314,7 @@ export const VideoPlayer = () => {
         if (isPlayerReady(player)) {
           const currentTime = player.getCurrentTime();
           const videoDuration = player.getDuration();
-          console.log(
+          debugLog(
             `[Debug] Auto-saving progress for video ${videoId}:`,
             `\n- Time: ${Math.floor(currentTime)}/${Math.floor(
               videoDuration
@@ -347,7 +345,7 @@ export const VideoPlayer = () => {
             clearInterval(checkInterval);
             const duration = player.getDuration();
             const currentTime = player.getCurrentTime();
-            console.log(
+            debugLog(
               `[Debug] Player ready for video ${videoId}:`,
               `\n- Duration: ${duration}s`,
               `\n- Current time: ${currentTime}s`
@@ -389,9 +387,7 @@ export const VideoPlayer = () => {
         !playerRef.current?.getCurrentTime ||
         !playerRef.current?.getDuration
       ) {
-        console.log(
-          '[Debug] Cannot save progress: Player methods not available'
-        );
+        debugLog('[Debug] Cannot save progress: Player methods not available');
         return;
       }
 
@@ -430,7 +426,7 @@ export const VideoPlayer = () => {
 
         // Save to localStorage
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(progress));
-        console.log(
+        debugLog(
           `[Debug] Saved progress for video ${videoId}: ${intTimestamp}/${intDuration} seconds`
         );
 
@@ -443,7 +439,7 @@ export const VideoPlayer = () => {
         // Check watch status
         checkAndMarkAsWatched(intTimestamp, intDuration);
       } else {
-        console.log('[Debug] Invalid progress values, skipping save:', {
+        debugLog('[Debug] Invalid progress values, skipping save:', {
           timestamp,
           duration,
         });
@@ -467,7 +463,7 @@ export const VideoPlayer = () => {
     }
 
     const startTime = getSavedProgress(videoId);
-    console.log(
+    debugLog(
       `[Debug] Initializing player for video ${videoId} at ${startTime} seconds`
     );
 
@@ -481,9 +477,7 @@ export const VideoPlayer = () => {
         },
         events: {
           onReady: (event) => {
-            console.log(
-              `[Debug] Player ready event fired for video ${videoId}`
-            );
+            debugLog(`[Debug] Player ready event fired for video ${videoId}`);
             const player = event.target;
 
             // Wait for player to be ready
@@ -510,7 +504,7 @@ export const VideoPlayer = () => {
                   const currentTime = player.getCurrentTime();
                   const duration = player.getDuration();
                   const progress = ((currentTime / duration) * 100).toFixed(1);
-                  console.log(
+                  debugLog(
                     `[Debug] Saving progress for video ${videoId} on ${
                       state === window.YT.PlayerState.ENDED ? 'end' : 'pause'
                     }:`,
@@ -522,7 +516,7 @@ export const VideoPlayer = () => {
                   saveProgress(videoId, currentTime, duration);
                 }
               } else {
-                console.log(
+                debugLog(
                   `[Debug] Skipping progress save - player not ready on state change for video ${videoId}:`,
                   state
                 );

@@ -16,7 +16,7 @@ A modern, open-source YouTube playlist viewer with Picture-in-Picture support. N
 
 ## Getting Started
 
-1. Visit [YouTube Free PiP](https://youtube-free-pip.netlify.app)
+1. Visit [YouTube Free PiP](https://free-yt-pip.netlify.app)
 2. Paste a YouTube playlist URL (e.g., `https://www.youtube.com/playlist?list=PLxxxxxx`)
 3. Browse the video grid and click any video to start watching
 4. Use the Picture-in-Picture button to watch in floating mode
@@ -31,7 +31,7 @@ A modern, open-source YouTube playlist viewer with Picture-in-Picture support. N
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (see `.nvmrc` for the exact version — currently the latest LTS)
 - npm or yarn
 
 ### Local Development
@@ -67,24 +67,25 @@ npm run dev
 ```
 src/
 ├── components/
-│   ├── auth/                # Authentication components (for future use)
-│   └── youtube/             # YouTube integration components
+│   ├── DebugConsole.tsx           # Debug logging panel (?debug=1)
+│   └── youtube/
 │       ├── PlaylistContext.tsx    # State management
-│       ├── PlaylistDetector.tsx   # Auto URL detection
+│       ├── PlaylistDetector.tsx   # Selection-based URL detection
+│       ├── PlaylistHeader.tsx     # Playlist title, share, clear
 │       ├── PlaylistInput.tsx      # URL input component
+│       ├── PlaylistRouter.tsx     # /playlist/:id routing
 │       ├── SplitView.tsx          # Main layout
-│       ├── VideoPlayer.tsx        # YouTube video player
-│       └── types.ts               # TypeScript types
+│       └── VideoPlayer.tsx        # YouTube video player
 ├── utils/
-│   └── youtube.ts           # YouTube API utilities
-└── App.tsx                  # Main application component
+│   ├── debugLog.ts           # console.log gated behind import.meta.env.DEV
+│   └── youtube.ts            # YouTube API utilities
+└── App.tsx                   # Main application component
 ```
 
 ## Technical Implementation
 
-- **Data Source**: Uses Invidious API instances as CORS-free proxy to YouTube
+- **Data Source**: Uses the [Invidious](https://invidious.io/) API as a CORS-free proxy to YouTube
 - **No API Keys**: No authentication or API keys required
-- **Fallback System**: Multiple Invidious instances for reliability
 - **Local Storage**: Playlist URLs saved locally for persistence
 - **Progress Tracking**: Video watch progress saved per device
 
@@ -111,7 +112,7 @@ npm run lint
 
 ## Technical Details
 
-- Built with React 18 and TypeScript
+- Built with React 19 and TypeScript
 - Uses Vite for fast development and building
 - Styled with Tailwind CSS and Lucide React icons
 - Invidious API integration for YouTube data

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Toast, toast } from 'react-hot-toast';
+import { type Toast, toast } from 'react-hot-toast';
 import { findPlaylistInText, normalizePlaylistUrl } from '../../utils/youtube';
 import { usePlaylist } from './PlaylistContext';
 

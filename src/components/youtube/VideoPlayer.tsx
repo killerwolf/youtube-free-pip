@@ -90,17 +90,6 @@ const isPlayerReady = (player: YT.Player): boolean => {
 export const VideoPlayer = () => {
   const { currentVideo, markVideoAsWatched } = usePlaylist();
 
-  // Early return if no video
-  if (!currentVideo) {
-    console.log('[Debug] VideoPlayer not mounting - no current video');
-    return null;
-  }
-
-  console.log(
-    '[Debug] VideoPlayer component mounted for video:',
-    currentVideo.id
-  );
-
   const playerRef = useRef<YT.Player | null>(null);
   const playerElementRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<number>();
@@ -251,6 +240,7 @@ export const VideoPlayer = () => {
   }, []); // This effect only runs once to load the API
 
   // Initialize player when API is ready and video changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: initializePlayer is redefined every render (not memoized); adding it here would re-init the player on every render instead of only on video changes
   useEffect(() => {
     const videoId = currentVideo?.id;
     if (!videoId) return;
@@ -313,7 +303,6 @@ export const VideoPlayer = () => {
         }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentVideo?.id]); // Only depends on the video ID for re-initialization
 
   // Function to start progress tracking
@@ -555,6 +544,10 @@ export const VideoPlayer = () => {
       isInitializing.current = false;
     }
   };
+
+  if (!currentVideo) {
+    return null;
+  }
 
   return (
     <div className="w-full h-full bg-black">

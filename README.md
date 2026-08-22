@@ -13,6 +13,24 @@ A modern, open-source YouTube playlist viewer with Picture-in-Picture support. N
 - 📑 **Playlist Management**: Browse and play videos from public playlists
 - 🕒 **Watch Progress**: Track video progress with visual indicators
 - 💾 **Local Storage**: Your playlist preference is saved locally
+- 📲 **Resume on Another Device**: Share a link that reopens the playlist on the
+  video you were watching, at the second you stopped
+
+## Switching Devices
+
+While a video is playing, the share button in the playlist header produces a
+link that carries the playlist, the current video, and the playback position:
+
+```
+https://free-yt-pip.netlify.app/?list=PLAYLIST_ID&v=VIDEO_ID&t=304
+```
+
+Send it over WhatsApp (or anything else) and opening it on another device picks
+playback back up at 5:04 of that video. On mobile the button opens the native
+share sheet directly; elsewhere it copies the link to the clipboard.
+
+The `t` parameter is optional — a link without it just opens on that video from
+where that device had last left it (or from the start).
 
 ## Getting Started
 
@@ -26,6 +44,9 @@ A modern, open-source YouTube playlist viewer with Picture-in-Picture support. N
 - Playlist URLs: `https://www.youtube.com/playlist?list=PLAYLIST_ID`
 - Video in playlist: `https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID`
 - Playlist ID only: `PLxxxxxx`
+
+The app's own share links additionally accept `?v=VIDEO_ID` to open on a
+specific video and `?t=SECONDS` to start it at a given position.
 
 ## Development Setup
 

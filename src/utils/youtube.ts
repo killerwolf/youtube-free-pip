@@ -90,15 +90,67 @@ export const normalizePlaylistUrl = (input: string): string | null => {
   return playlistId ? formatPlaylistUrl(playlistId) : null;
 };
 
+// A YouTube video ID is always 11 URL-safe base64 characters.
+const YOUTUBE_VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
+
+export interface PlaylistShareOptions {
+  /** Video to open when the link is followed. */
+  videoId?: string | null;
+  /** Playback position to resume at, in seconds. */
+  startSeconds?: number | null;
+  baseUrl?: string;
+}
+
 /**
- * Generates this app's own shareable URL for a playlist (?list=<id>)
+ * Generates this app's own shareable URL for a playlist (?list=<id>).
+ *
+ * When a video (and optionally a position) is provided, the link also carries
+ * ?v=<videoId>&t=<seconds> so that opening it on another device reopens the
+ * playlist on that exact video, at the point playback had reached.
  */
 export const generatePlaylistShareUrl = (
   playlistId: string,
-  baseUrl?: string
+  options: PlaylistShareOptions = {}
 ): string => {
+  const { videoId, startSeconds, baseUrl } = options;
   const base = baseUrl || window.location.origin;
-  return `${base}?list=${playlistId}`;
+
+  const params = new URLSearchParams({ list: playlistId });
+  if (videoId) {
+    params.set('v', videoId);
+    if (startSeconds && startSeconds > 0) {
+      params.set('t', String(Math.floor(startSeconds)));
+    }
+  }
+
+  return `${base}?${params.toString()}`;
+};
+
+export interface ResumeTarget {
+  videoId: string;
+  startSeconds: number;
+}
+
+/**
+ * Reads the ?v=<videoId>&t=<seconds> pair out of a query string.
+ *
+ * `t` accepts either a plain number of seconds or the YouTube-style `123s`
+ * form, and is optional — a link without it simply resumes from the start.
+ */
+export const parseResumeParams = (search: string): ResumeTarget | null => {
+  const params = new URLSearchParams(search);
+
+  const videoId = params.get('v');
+  if (!videoId || !YOUTUBE_VIDEO_ID_PATTERN.test(videoId)) {
+    return null;
+  }
+
+  const rawStart = params.get('t');
+  const parsedStart = rawStart ? Number.parseInt(rawStart, 10) : 0;
+  const startSeconds =
+    Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : 0;
+
+  return { videoId, startSeconds };
 };
 
 export interface YouTubeVideo {

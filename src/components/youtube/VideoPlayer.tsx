@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { debugLog } from '../../utils/debugLog';
+import { getVideoProgress, setVideoProgress } from '../../utils/videoProgress';
 import { usePlaylist } from './PlaylistContext';
 
 declare global {
@@ -49,7 +50,6 @@ declare global {
 }
 
 const PROGRESS_SAVE_INTERVAL = 5000; // Save progress every 5 seconds
-const LOCAL_STORAGE_KEY = 'youtube-pip-video-progress';
 const MIN_WATCH_THRESHOLD = 30; // Minimum 30 seconds from end to mark as watched
 const MAX_WATCH_THRESHOLD = 120; // Maximum 2 minutes from end to mark as watched
 const WATCH_THRESHOLD_RATIO = 0.1; // 10% of video length
@@ -68,10 +68,6 @@ const calculateWatchThreshold = (duration: number): number => {
     MAX_WATCH_THRESHOLD
   );
 };
-
-interface VideoProgress {
-  [videoId: string]: number; // videoId -> timestamp in seconds
-}
 
 // Add this helper function at the top level
 const isPlayerReady = (player: YT.Player): boolean => {
@@ -101,39 +97,6 @@ export const VideoPlayer = () => {
   });
   const isInitializing = useRef<boolean>(false);
   const readyCheckIntervalRef = useRef<number>();
-
-  // Load saved progress from localStorage
-  const getSavedProgress = (videoId: string): number => {
-    try {
-      if (!videoId) {
-        console.warn('[Debug] Invalid video ID provided to getSavedProgress');
-        return 0;
-      }
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const progress: VideoProgress = JSON.parse(saved);
-        if (typeof progress !== 'object') {
-          console.warn('[Debug] Invalid progress data format in localStorage');
-          return 0;
-        }
-        const savedTime = progress[videoId] || 0;
-        debugLog(
-          `[Debug] Loading saved progress for video ${videoId}: ${savedTime} seconds`
-        );
-        return Math.max(0, Math.floor(savedTime)); // Ensure non-negative integer
-      }
-    } catch (error) {
-      console.warn('[Debug] Failed to load video progress:', error);
-      // Clear potentially corrupted data
-      try {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-      } catch (e) {
-        console.error('[Debug] Failed to clear corrupted progress data:', e);
-      }
-    }
-    debugLog(`[Debug] No saved progress found for video ${videoId}`);
-    return 0;
-  };
 
   // Check if video should be marked as watched
   const checkAndMarkAsWatched = (timestamp: number, duration: number) => {
@@ -387,84 +350,41 @@ export const VideoPlayer = () => {
     timestamp: number,
     duration: number
   ) => {
-    try {
-      // Input validation
-      if (!videoId) {
-        console.warn('[Debug] Invalid video ID provided to saveProgress');
-        return;
-      }
-
-      // Validate player state and methods
-      if (
-        !playerRef.current?.getCurrentTime ||
-        !playerRef.current?.getDuration
-      ) {
-        debugLog('[Debug] Cannot save progress: Player methods not available');
-        return;
-      }
-
-      // Ensure we're working with valid numbers
-      const intTimestamp = Math.max(0, Math.floor(timestamp));
-      const intDuration = Math.max(0, Math.floor(duration));
-
-      // Only save progress if we have valid data and there's actual progress
-      if (intTimestamp > 0 && intDuration > 0 && intTimestamp <= intDuration) {
-        // Load existing progress
-        let progress: VideoProgress = {};
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (typeof parsed === 'object') {
-              progress = parsed;
-            }
-          } catch (e) {
-            console.warn(
-              '[Debug] Failed to parse existing progress, starting fresh:',
-              e
-            );
-          }
-        }
-
-        // Update progress
-        progress[videoId] = intTimestamp;
-
-        // Clean up old entries (keep only last 100 videos)
-        const entries = Object.entries(progress);
-        if (entries.length > 100) {
-          progress = Object.fromEntries(entries.slice(-100));
-        }
-
-        // Save to localStorage
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(progress));
-        debugLog(
-          `[Debug] Saved progress for video ${videoId}: ${intTimestamp}/${intDuration} seconds`
-        );
-
-        // Update last progress
-        lastProgressUpdate.current = {
-          timestamp: intTimestamp,
-          duration: intDuration,
-        };
-
-        // Check watch status
-        checkAndMarkAsWatched(intTimestamp, intDuration);
-      } else {
-        debugLog('[Debug] Invalid progress values, skipping save:', {
-          timestamp,
-          duration,
-        });
-      }
-    } catch (error) {
-      console.warn('[Debug] Failed to save video progress:', error);
-      // Attempt to clear potentially corrupted data
-      try {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-      } catch (e) {
-        console.error('[Debug] Failed to clear corrupted progress data:', e);
-      }
+    // Input validation
+    if (!videoId) {
+      console.warn('[Debug] Invalid video ID provided to saveProgress');
+      return;
     }
+
+    // Validate player state and methods
+    if (!playerRef.current?.getCurrentTime || !playerRef.current?.getDuration) {
+      debugLog('[Debug] Cannot save progress: Player methods not available');
+      return;
+    }
+
+    // Ensure we're working with valid numbers
+    const intTimestamp = Math.max(0, Math.floor(timestamp));
+    const intDuration = Math.max(0, Math.floor(duration));
+
+    // Only save progress if we have valid data and there's actual progress
+    if (intTimestamp <= 0 || intDuration <= 0 || intTimestamp > intDuration) {
+      debugLog('[Debug] Invalid progress values, skipping save:', {
+        timestamp,
+        duration,
+      });
+      return;
+    }
+
+    setVideoProgress(videoId, intTimestamp);
+
+    // Update last progress
+    lastProgressUpdate.current = {
+      timestamp: intTimestamp,
+      duration: intDuration,
+    };
+
+    // Check watch status
+    checkAndMarkAsWatched(intTimestamp, intDuration);
   };
 
   const initializePlayer = (videoId: string) => {
@@ -474,7 +394,7 @@ export const VideoPlayer = () => {
       return;
     }
 
-    const startTime = getSavedProgress(videoId);
+    const startTime = getVideoProgress(videoId);
     debugLog(
       `[Debug] Initializing player for video ${videoId} at ${startTime} seconds`
     );

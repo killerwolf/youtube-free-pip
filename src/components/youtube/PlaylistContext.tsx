@@ -1,9 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { debugLog } from '../../utils/debugLog';
 import {
+  setVideoProgress,
+  VIDEO_PROGRESS_STORAGE_KEY,
+} from '../../utils/videoProgress';
+import {
   extractPlaylistId,
   fetchPlaylistData,
   normalizePlaylistUrl,
+  parseResumeParams,
+  type ResumeTarget,
 } from '../../utils/youtube';
 
 export interface Video {
@@ -118,6 +124,28 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
+  // A ?v=<id>&t=<seconds> pair on the page URL means this session was opened
+  // from a share link: once the playlist finishes loading, that video is
+  // selected and cued at the shared position. Captured during the first render
+  // so it survives the URL cleanup effect below.
+  const [pendingResume, setPendingResume] = useState<ResumeTarget | null>(
+    () => {
+      if (typeof window === 'undefined') return null;
+      return parseResumeParams(window.location.search);
+    }
+  );
+
+  // Strip the resume params once captured, so a reload (or a bookmark) doesn't
+  // yank playback back to the shared position after the user has moved on.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('v') || url.searchParams.has('t')) {
+      url.searchParams.delete('v');
+      url.searchParams.delete('t');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
   // Load videos when playlist URL changes
   useEffect(() => {
     async function loadPlaylist() {
@@ -161,6 +189,33 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
 
     loadPlaylist();
   }, [playlistUrl]);
+
+  // Apply a share link's resume target once the playlist it refers to is loaded.
+  useEffect(() => {
+    if (!pendingResume || videos.length === 0) return;
+
+    const target = videos.find((video) => video.id === pendingResume.videoId);
+    if (!target) {
+      debugLog(
+        '[Debug] Shared video not found in playlist:',
+        pendingResume.videoId
+      );
+      setPendingResume(null);
+      return;
+    }
+
+    // The player reads its start time from the progress store, so seeding it
+    // here is what makes playback pick up where the sharer left off.
+    if (pendingResume.startSeconds > 0) {
+      setVideoProgress(target.id, pendingResume.startSeconds);
+    }
+
+    debugLog(
+      `[Debug] Resuming shared video ${target.id} at ${pendingResume.startSeconds}s`
+    );
+    setCurrentVideoState(target);
+    setPendingResume(null);
+  }, [pendingResume, videos]);
 
   // Persist state changes to localStorage and clean URL parameters if needed
   useEffect(() => {
@@ -256,7 +311,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_TITLE);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_AUTHOR);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.CURRENT_VIDEO);
-    localStorage.removeItem('youtube-pip-video-progress'); // Clear video progress
+    localStorage.removeItem(VIDEO_PROGRESS_STORAGE_KEY); // Clear video progress
 
     // Clear watched videos only for the current playlist's videos
     if (videos.length > 0) {

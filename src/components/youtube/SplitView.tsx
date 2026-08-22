@@ -1,5 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { VIDEO_PROGRESS_STORAGE_KEY } from '../../utils/videoProgress';
 import { formatDuration } from '../../utils/youtube';
 import { usePlaylist } from './PlaylistContext';
 import { PlaylistHeader } from './PlaylistHeader';
@@ -139,7 +140,7 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   useEffect(() => {
     const loadProgress = () => {
       try {
-        const saved = localStorage.getItem('youtube-pip-video-progress');
+        const saved = localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY);
         if (saved) {
           const progressData = JSON.parse(saved);
           const videoProgress = progressData[video.id] || 0;

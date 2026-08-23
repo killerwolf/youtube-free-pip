@@ -2,6 +2,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { VIDEO_PROGRESS_STORAGE_KEY } from '../../utils/videoProgress';
 import { formatDuration } from '../../utils/youtube';
+import { Logo } from '../Logo';
 import { usePlaylist } from './PlaylistContext';
 import { PlaylistHeader } from './PlaylistHeader';
 import { PlaylistInput } from './PlaylistInput';
@@ -85,7 +86,19 @@ export const SplitView = () => {
             <PlaylistInput />
           </div>
         ) : videos.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
+            <div className="flex flex-col items-center gap-3">
+              <Logo size={56} />
+              <div className="text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  YouTube Free PiP
+                </h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  Watch YouTube playlists in Picture-in-Picture. No login, no
+                  ads.
+                </p>
+              </div>
+            </div>
             <PlaylistInput />
           </div>
         ) : (

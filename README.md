@@ -1,4 +1,8 @@
-# YouTube Free PiP
+<p align="center">
+  <img src="public/logo.svg" width="88" height="88" alt="YouTube Free PiP" />
+</p>
+
+<h1 align="center">YouTube Free PiP</h1>
 
 [![CI](https://github.com/killerwolf/youtube-free-pip/actions/workflows/ci.yml/badge.svg)](https://github.com/killerwolf/youtube-free-pip/actions/workflows/ci.yml)
 

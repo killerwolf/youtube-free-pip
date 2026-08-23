@@ -1,7 +1,8 @@
 import { Eye, EyeOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { VIDEO_PROGRESS_STORAGE_KEY } from '../../utils/videoProgress';
 import { formatDuration } from '../../utils/youtube';
+import { Logo } from '../Logo';
 import { usePlaylist } from './PlaylistContext';
 import { PlaylistHeader } from './PlaylistHeader';
 import { PlaylistInput } from './PlaylistInput';
@@ -10,32 +11,6 @@ import { VideoPlayer } from './VideoPlayer';
 export const SplitView = () => {
   const { currentVideo, videos, watchedVideos, isLoading, error } =
     usePlaylist();
-  const [isPlayerVisible, setIsPlayerVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Auto-hide player on scroll down, show on scroll up.
-  // The playlist section scrolls within its own overflow-y-auto container,
-  // not the window, so the listener has to be attached there.
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return;
-
-    const handleScroll = () => {
-      const currentScrollY = scrollContainer.scrollTop;
-      if (currentScrollY > lastScrollY.current) {
-        setIsPlayerVisible(false);
-      } else {
-        setIsPlayerVisible(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    scrollContainer.addEventListener('scroll', handleScroll, {
-      passive: true,
-    });
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Separate videos into unwatched and watched
   const { unwatchedVideos, watchedVideosList } = videos.reduce(
@@ -56,11 +31,7 @@ export const SplitView = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-900 text-white">
       {/* Video Player Section */}
-      <div
-        className={`transition-all duration-300 ${
-          isPlayerVisible && currentVideo ? 'h-2/5' : 'h-0'
-        }`}
-      >
+      <div className={currentVideo ? 'h-2/5' : 'h-0'}>
         {currentVideo && (
           <div className="w-full h-full">
             <VideoPlayer />
@@ -70,9 +41,8 @@ export const SplitView = () => {
 
       {/* Playlist Section */}
       <div
-        ref={scrollContainerRef}
-        className={`flex-1 overflow-y-auto transition-all duration-300 ${
-          isPlayerVisible && currentVideo ? 'h-3/5' : 'h-screen'
+        className={`flex-1 overflow-y-auto ${
+          currentVideo ? 'h-3/5' : 'h-screen'
         }`}
       >
         {isLoading ? (
@@ -85,7 +55,19 @@ export const SplitView = () => {
             <PlaylistInput />
           </div>
         ) : videos.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
+            <div className="flex flex-col items-center gap-3">
+              <Logo size={56} />
+              <div className="text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  YouTube Free PiP
+                </h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  Watch YouTube playlists in Picture-in-Picture. No login, no
+                  ads.
+                </p>
+              </div>
+            </div>
             <PlaylistInput />
           </div>
         ) : (

@@ -9,8 +9,10 @@
     "build": "tsc && vite build",
     "lint": "biome check .",
     "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "type-check": "tsc --noEmit",
-    "ci": "npm run type-check && npm run lint && npm run build",
+    "ci": "npm run type-check && npm run lint && npm test && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,13 +25,16 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
+    "jsdom": "^30.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^4.1.11"
   }
 }

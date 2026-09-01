@@ -85,7 +85,9 @@ npm run dev
 - `npm run lint` - Run Biome checks
 - `npm run format` - Format code with Biome
 - `npm run type-check` - Run TypeScript type checking
-- `npm run ci` - Run all checks (types, lint, build)
+- `npm test` - Run the test suite once (Vitest)
+- `npm run test:watch` - Run the test suite in watch mode
+- `npm run ci` - Run all checks (types, lint, tests, build)
 
 ## Project Structure
 

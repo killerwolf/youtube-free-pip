@@ -118,9 +118,9 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   const [progress, setProgress] = useState(0);
   const isCurrentlyPlaying = currentVideo?.id === video.id;
 
-  // Show the stored position, then let the store push every later write: the
-  // bar follows the player as it saves, and falls back to empty when the
-  // playlist is cleared, without a timer of its own.
+  // Show the stored position, then let the store push every later write, so
+  // the bar follows the player as it saves rather than polling on a timer of
+  // its own.
   useEffect(() => {
     const toPercent = (seconds: number) =>
       video.lengthSeconds > 0 ? (seconds / video.lengthSeconds) * 100 : 0;

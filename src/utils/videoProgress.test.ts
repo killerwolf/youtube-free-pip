@@ -3,7 +3,6 @@ import {
   clearAllVideoProgress,
   createMemoryProgressStorage,
   getVideoProgress,
-  type ProgressStorage,
   setVideoProgress,
   subscribeToVideoProgress,
 } from './videoProgress';
@@ -16,11 +15,6 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
-
-// What the store wrote, read back the way the store writes it. The storage key
-// is the module's business, so tests observe through the adapter instead.
-const storedMap = (storage: ProgressStorage): Record<string, number> =>
-  JSON.parse(storage.read() ?? '{}');
 
 describe('getVideoProgress', () => {
   it('reports zero for a video never watched', () => {
@@ -93,14 +87,14 @@ describe('store size', () => {
   it('prunes to the 100 most recently added videos', () => {
     const storage = createMemoryProgressStorage();
 
+    // 101 videos into a store that holds 100: the first one written falls out.
     for (let i = 0; i <= 100; i++) {
       setVideoProgress(`video-${i}`, i + 1, storage);
     }
 
-    const stored = storedMap(storage);
-    expect(Object.keys(stored)).toHaveLength(100);
-    expect(stored['video-0']).toBeUndefined();
-    expect(stored['video-100']).toBe(101);
+    expect(getVideoProgress('video-0', storage)).toBe(0);
+    expect(getVideoProgress('video-1', storage)).toBe(2);
+    expect(getVideoProgress('video-100', storage)).toBe(101);
   });
 
   it('prunes by first write, not by most recent write', () => {
@@ -119,8 +113,8 @@ describe('store size', () => {
     setVideoProgress('video-99', 100, storage);
     setVideoProgress('video-100', 101, storage);
 
-    expect(storedMap(storage)['video-0']).toBeUndefined();
-    expect(storedMap(storage)['video-1']).toBe(2);
+    expect(getVideoProgress('video-0', storage)).toBe(0);
+    expect(getVideoProgress('video-1', storage)).toBe(2);
   });
 });
 
@@ -187,9 +181,10 @@ describe('subscribeToVideoProgress', () => {
   });
 
   it('tells subscribers the position is back to zero when the store is cleared', () => {
-    // The bar has to fall back to empty on its own: nothing re-mounts the
-    // playlist when a playlist is cleared, so a bar that is never told keeps
-    // showing the position of a video the store has already forgotten.
+    // No caller can see this today: clearPlaylist() empties the video list,
+    // so every VideoItem unmounts before it could show a stale bar. The store
+    // still owes its subscribers the truth — one told about writes but not
+    // about a clear would sit on a position the store has forgotten.
     const storage = createMemoryProgressStorage();
     setVideoProgress('dQw4w9WgXcQ', 304, storage);
     const seen: number[] = [];

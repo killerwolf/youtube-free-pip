@@ -19,7 +19,7 @@ export interface ProgressStorage {
   clear(): void;
 }
 
-const localStorageProgress: ProgressStorage = {
+const browserProgressStorage: ProgressStorage = {
   read: () => localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY),
   write: (value) => localStorage.setItem(VIDEO_PROGRESS_STORAGE_KEY, value),
   clear: () => localStorage.removeItem(VIDEO_PROGRESS_STORAGE_KEY),
@@ -122,7 +122,7 @@ const readVideoProgressMap = (storage: ProgressStorage): VideoProgressMap => {
  */
 export const getVideoProgress = (
   videoId: string,
-  storage: ProgressStorage = localStorageProgress
+  storage: ProgressStorage = browserProgressStorage
 ): number => {
   if (!videoId) {
     console.warn('[Debug] Invalid video ID provided to getVideoProgress');
@@ -140,7 +140,7 @@ export const getVideoProgress = (
 export const setVideoProgress = (
   videoId: string,
   seconds: number,
-  storage: ProgressStorage = localStorageProgress
+  storage: ProgressStorage = browserProgressStorage
 ): void => {
   if (!videoId) {
     console.warn('[Debug] Invalid video ID provided to setVideoProgress');
@@ -172,7 +172,7 @@ export const setVideoProgress = (
  * callers no longer need to know which key it lives under.
  */
 export const clearAllVideoProgress = (
-  storage: ProgressStorage = localStorageProgress
+  storage: ProgressStorage = browserProgressStorage
 ): void => {
   try {
     storage.clear();

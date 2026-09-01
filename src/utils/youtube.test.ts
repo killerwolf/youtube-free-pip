@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   extractPlaylistId,
+  fetchPlaylistData,
   findPlaylistInText,
   formatDuration,
   generatePlaylistShareUrl,
@@ -195,5 +196,76 @@ describe('formatDuration', () => {
 
   it('floors fractional seconds', () => {
     expect(formatDuration(59.9)).toBe('0:59');
+  });
+});
+
+// The instances are volunteer-run and the list is one entry long, so every
+// case below drives fetch directly. restoreMocks in vite.config.ts does not
+// cover stubbed globals.
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+const respondWith = (
+  body: unknown,
+  init: { ok?: boolean; status?: number } = {}
+) =>
+  ({
+    ok: init.ok ?? true,
+    status: init.status ?? 200,
+    json: async () => body,
+  }) as Response;
+
+const aPlaylist = {
+  title: 'Deep work',
+  author: 'Some channel',
+  videos: [
+    {
+      videoId: 'dQw4w9WgXcQ',
+      title: 'First video',
+      lengthSeconds: 212,
+      author: 'Channel A',
+    },
+  ],
+};
+
+describe('fetchPlaylistData', () => {
+  beforeEach(() => {
+    // the fallback path reports every dead instance through console.warn
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  it('maps an instance response into playlist data', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respondWith(aPlaylist)));
+
+    const data = await fetchPlaylistData('PLtest');
+
+    expect(data).toEqual({
+      title: 'Deep work',
+      author: 'Some channel',
+      videos: [
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'First video',
+          // straight from YouTube's CDN, not proxied through the instance
+          thumbnailUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+          channelTitle: 'Channel A',
+          lengthSeconds: 212,
+        },
+      ],
+    });
+  });
+
+  it('treats a response carrying no video list as a failed instance', async () => {
+    // Valid JSON, no `videos`. Every other field has a fallback; this one had
+    // none, so the map() threw a TypeError the user saw as
+    // "Cannot read properties of undefined (reading 'map')".
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(respondWith({ title: 'x', author: 'y' }))
+    );
+
+    await expect(fetchPlaylistData('PLtest')).rejects.toThrow(/no video list/i);
   });
 });

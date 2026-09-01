@@ -223,6 +223,14 @@ export async function fetchPlaylistData(
       // biome-ignore lint/suspicious/noExplicitAny: shape validated below via optional chaining/fallbacks
       const data = (await fetchFromInstance(instance, playlistId)) as any;
 
+      // Every other field below falls back to a default; the video list can't,
+      // and an instance answering without one is answering wrongly. Treated as
+      // a failed instance so the next one is tried, rather than surfacing an
+      // empty playlist as a success or a raw TypeError as the error.
+      if (!Array.isArray(data?.videos)) {
+        throw new Error('playlist response carried no video list');
+      }
+
       return {
         title: data.title || 'Untitled Playlist',
         author: data.author || 'Unknown Author',

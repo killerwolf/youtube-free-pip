@@ -230,7 +230,7 @@ export async function fetchPlaylistData(
   // Try each instance until one works
   for (const instance of instances) {
     try {
-      // biome-ignore lint/suspicious/noExplicitAny: shape validated below via optional chaining/fallbacks
+      // biome-ignore lint/suspicious/noExplicitAny: shape validated below by the Array.isArray guard and per-field fallbacks
       const data = (await fetchFromInstance(instance, playlistId)) as any;
 
       // Every other field below falls back to a default; the video list can't,

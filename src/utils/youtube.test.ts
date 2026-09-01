@@ -200,13 +200,8 @@ describe('formatDuration', () => {
 });
 
 // The instances are volunteer-run and the list is one entry long, so every
-// case below drives fetch directly. restoreMocks in vite.config.ts does not
-// cover stubbed globals.
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.useRealTimers();
-});
-
+// case below drives fetch directly. restoreMocks and unstubGlobals in
+// vite.config.ts undo the stubs.
 const respondWith = (
   body: unknown,
   init: { ok?: boolean; status?: number } = {}
@@ -230,14 +225,25 @@ const aPlaylist = {
   ],
 };
 
+const stubFetch = (...responses: Response[]) => {
+  const mock = vi.fn();
+  for (const response of responses) mock.mockResolvedValueOnce(response);
+  vi.stubGlobal('fetch', mock);
+  return mock;
+};
+
 describe('fetchPlaylistData', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     // the fallback path reports every dead instance through console.warn
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   it('maps an instance response into playlist data', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respondWith(aPlaylist)));
+    stubFetch(respondWith(aPlaylist));
 
     const data = await fetchPlaylistData('PLtest');
 
@@ -261,10 +267,7 @@ describe('fetchPlaylistData', () => {
     // Valid JSON, no `videos`. Every other field has a fallback; this one had
     // none, so the map() threw a TypeError the user saw as
     // "Cannot read properties of undefined (reading 'map')".
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(respondWith({ title: 'x', author: 'y' }))
-    );
+    stubFetch(respondWith({ title: 'x', author: 'y' }));
 
     await expect(fetchPlaylistData('PLtest')).rejects.toThrow(
       'Failed to fetch playlist data: playlist response carried no video list'
@@ -274,11 +277,10 @@ describe('fetchPlaylistData', () => {
   it('moves on to the next instance when one answers with no video list', async () => {
     // The point of treating it as a failed instance rather than an empty
     // playlist: the fallback still has to run.
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(respondWith({ title: 'x', author: 'y' }))
-      .mockResolvedValueOnce(respondWith(aPlaylist));
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubFetch(
+      respondWith({ title: 'x', author: 'y' }),
+      respondWith(aPlaylist)
+    );
 
     const data = await fetchPlaylistData('PLtest', {
       instances: ['https://empty.test', 'https://alive.test'],
@@ -300,16 +302,23 @@ describe('fetchPlaylistData', () => {
     });
 
     expect(data.title).toBe('Deep work');
-    expect(fetchMock.mock.calls[0][0]).toContain('dead.test');
-    expect(fetchMock.mock.calls[1][0]).toContain('alive.test');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('dead.test'),
+      expect.anything()
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('alive.test'),
+      expect.anything()
+    );
   });
 
   it('treats a non-ok response as a failed instance', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(respondWith(null, { ok: false, status: 502 }))
-      .mockResolvedValueOnce(respondWith(aPlaylist));
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetch(
+      respondWith(null, { ok: false, status: 502 }),
+      respondWith(aPlaylist)
+    );
 
     const data = await fetchPlaylistData('PLtest', {
       instances: ['https://bad.test', 'https://alive.test'],
@@ -319,12 +328,9 @@ describe('fetchPlaylistData', () => {
   });
 
   it('reports the last failure when every instance is down, not the first', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(respondWith(null, { ok: false, status: 500 }))
-        .mockResolvedValueOnce(respondWith(null, { ok: false, status: 503 }))
+    stubFetch(
+      respondWith(null, { ok: false, status: 500 }),
+      respondWith(null, { ok: false, status: 503 })
     );
 
     await expect(
@@ -364,7 +370,9 @@ describe('fetchPlaylistData', () => {
     const pending = fetchPlaylistData('PLtest', {
       instances: ['https://slow.test'],
     });
-    const settled = expect(pending).rejects.toThrow(/aborted/i);
+    const settled = expect(pending).rejects.toThrow(
+      'Failed to fetch playlist data: The operation was aborted'
+    );
 
     await vi.advanceTimersByTimeAsync(7999);
     expect(aborted).toBe(false);
@@ -375,12 +383,24 @@ describe('fetchPlaylistData', () => {
   });
 
   it('clears the abort timer once the instance has answered', async () => {
+    // A resource assertion rather than a behavioural one, deliberately: a timer
+    // left to fire aborts a request that already settled, which nothing outside
+    // can observe. Checking the count before and after separates "cleared" from
+    // "never armed". It is the one case here that would need rewriting if the
+    // timeout moved to AbortSignal.timeout().
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respondWith(aPlaylist)));
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((resolve) => (answer = resolve)))
+    );
 
-    await fetchPlaylistData('PLtest');
+    const pending = fetchPlaylistData('PLtest');
+    expect(vi.getTimerCount()).toBe(1);
 
-    // a surviving 8s timer would still be counted here
+    answer(respondWith(aPlaylist));
+    await pending;
+
     expect(vi.getTimerCount()).toBe(0);
   });
 

@@ -266,7 +266,26 @@ describe('fetchPlaylistData', () => {
       vi.fn().mockResolvedValue(respondWith({ title: 'x', author: 'y' }))
     );
 
-    await expect(fetchPlaylistData('PLtest')).rejects.toThrow(/no video list/i);
+    await expect(fetchPlaylistData('PLtest')).rejects.toThrow(
+      'Failed to fetch playlist data: playlist response carried no video list'
+    );
+  });
+
+  it('moves on to the next instance when one answers with no video list', async () => {
+    // The point of treating it as a failed instance rather than an empty
+    // playlist: the fallback still has to run.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(respondWith({ title: 'x', author: 'y' }))
+      .mockResolvedValueOnce(respondWith(aPlaylist));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const data = await fetchPlaylistData('PLtest', {
+      instances: ['https://empty.test', 'https://alive.test'],
+    });
+
+    expect(data.title).toBe('Deep work');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('falls back to the next instance when one fails', async () => {
@@ -299,10 +318,13 @@ describe('fetchPlaylistData', () => {
     expect(data.title).toBe('Deep work');
   });
 
-  it('reports the last failure when every instance is down', async () => {
+  it('reports the last failure when every instance is down, not the first', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(respondWith(null, { ok: false, status: 503 }))
+      vi
+        .fn()
+        .mockResolvedValueOnce(respondWith(null, { ok: false, status: 500 }))
+        .mockResolvedValueOnce(respondWith(null, { ok: false, status: 503 }))
     );
 
     await expect(
@@ -312,9 +334,11 @@ describe('fetchPlaylistData', () => {
     ).rejects.toThrow('Failed to fetch playlist data: HTTP error! status: 503');
   });
 
-  it('reports a plain failure when there is no instance to try', async () => {
+  it('reports a plain failure when the last error carries no message', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('')));
+
     await expect(
-      fetchPlaylistData('PLtest', { instances: [] })
+      fetchPlaylistData('PLtest', { instances: ['https://one.test'] })
     ).rejects.toThrow(
       'Failed to fetch playlist data: all API endpoints failed to respond'
     );

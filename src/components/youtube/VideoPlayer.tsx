@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { debugLog } from '../../utils/debugLog';
 import { getVideoProgress, setVideoProgress } from '../../utils/videoProgress';
 import {
   advance,
@@ -32,7 +33,7 @@ export const VideoPlayer = () => {
     // the previous one's "already marked as watched".
     let watch = initialWatchState;
 
-    const record = (sample: PlaybackSample) => {
+    const handleSample = (sample: PlaybackSample) => {
       const decision = advance(watch, sample);
       watch = decision.state;
 
@@ -41,6 +42,9 @@ export const VideoPlayer = () => {
       }
 
       if (decision.markWatched) {
+        debugLog(
+          `[Debug] Auto-marking video ${videoId} as watched at ${decision.markWatched.percentComplete}%`
+        );
         markVideoAsWatchedRef.current(videoId);
         toast.success(
           `Video marked as watched (${decision.markWatched.percentComplete}% complete)`
@@ -52,9 +56,9 @@ export const VideoPlayer = () => {
       videoId,
       startSeconds: getVideoProgress(videoId),
     });
-    player.on('tick', record);
-    player.on('pause', record);
-    player.on('ended', record);
+    player.on('tick', handleSample);
+    player.on('pause', handleSample);
+    player.on('ended', handleSample);
 
     return () => player.destroy();
   }, [videoId]);

@@ -6,10 +6,7 @@ declare global {
     interface Player {
       getCurrentTime(): number;
       getDuration(): number;
-      loadVideoById(options: { videoId: string; startSeconds?: number }): void;
       getPlayerState(): number;
-      playVideo(): void;
-      pauseVideo(): void;
       destroy(): void;
     }
   }
@@ -36,10 +33,7 @@ declare global {
       ) => YT.Player;
       PlayerState: {
         ENDED: number;
-        PLAYING: number;
         PAUSED: number;
-        BUFFERING: number;
-        CUED: number;
         UNSTARTED: number;
       };
     };
@@ -80,8 +74,13 @@ const isPlayerReady = (player: YT.Player): boolean => {
   }
 };
 
+// Once per page, not once per player: switching video before the script
+// resolves would otherwise inject a second copy of it.
+let iframeApiRequested = false;
+
 const loadIframeApi = () => {
-  if (window.YT) return;
+  if (window.YT || iframeApiRequested) return;
+  iframeApiRequested = true;
 
   debugLog('[Debug] YouTube IFrame API not found, loading script...');
   const tag = document.createElement('script');
@@ -131,14 +130,17 @@ export const mountYouTubePlayer = (
     }
   };
 
-  const clearTimers = () => {
-    if (sampleInterval !== undefined) {
-      window.clearInterval(sampleInterval);
-      sampleInterval = undefined;
-    }
+  const stopReadyPolling = () => {
     if (readyInterval !== undefined) {
       window.clearInterval(readyInterval);
       readyInterval = undefined;
+    }
+  };
+
+  const stopSampling = () => {
+    if (sampleInterval !== undefined) {
+      window.clearInterval(sampleInterval);
+      sampleInterval = undefined;
     }
   };
 
@@ -159,20 +161,20 @@ export const mountYouTubePlayer = (
     readyInterval = window.setInterval(() => {
       try {
         if (isPlayerReady(source)) {
-          clearTimers();
+          stopReadyPolling();
           debugLog(`[Debug] Player ready for video ${videoId}`);
           run();
           return;
         }
         attempts++;
         if (attempts >= READY_POLL_ATTEMPTS) {
-          clearTimers();
+          stopReadyPolling();
           console.error(
             `[Debug] Player failed to become ready for video ${videoId}`
           );
         }
       } catch (error) {
-        clearTimers();
+        stopReadyPolling();
         console.error(`[Debug] Error waiting on video ${videoId}:`, error);
       }
     }, READY_POLL_INTERVAL);
@@ -227,7 +229,8 @@ export const mountYouTubePlayer = (
     },
     destroy: () => {
       destroyed = true;
-      clearTimers();
+      stopReadyPolling();
+      stopSampling();
       if (player) {
         try {
           player.destroy();

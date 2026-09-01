@@ -110,7 +110,7 @@ describe('the end threshold', () => {
   });
 });
 
-describe('normalising a sample', () => {
+describe('normalizing a sample', () => {
   it('floors a fractional position', () => {
     const decision = advance(initialWatchState, {
       position: 12.9,

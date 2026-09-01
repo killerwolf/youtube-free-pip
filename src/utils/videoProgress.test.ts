@@ -216,6 +216,30 @@ describe('subscribeToVideoProgress', () => {
     expect(seen).toEqual([]);
   });
 
+  it('leaves a later subscriber alone when an earlier one unsubscribes twice', () => {
+    // A video moving between the watched and unwatched lists unmounts one
+    // VideoItem and mounts another for the same id, so the store sees an
+    // unsubscribe and a subscribe for one video in quick succession. A
+    // repeated unsubscribe must not take the new subscriber down with it.
+    const storage = createMemoryProgressStorage();
+    const unsubscribeFirst = subscribeToVideoProgress('dQw4w9WgXcQ', () => {});
+    unsubscribeFirst();
+
+    const seen: number[] = [];
+    const unsubscribeSecond = subscribeToVideoProgress(
+      'dQw4w9WgXcQ',
+      (seconds) => {
+        seen.push(seconds);
+      }
+    );
+    unsubscribeFirst();
+
+    setVideoProgress('dQw4w9WgXcQ', 304, storage);
+    unsubscribeSecond();
+
+    expect(seen).toEqual([304]);
+  });
+
   it('tells a subscriber only about the video it asked for', () => {
     const storage = createMemoryProgressStorage();
     const seen: number[] = [];

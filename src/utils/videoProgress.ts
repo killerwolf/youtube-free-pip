@@ -63,7 +63,11 @@ export const subscribeToVideoProgress = (
 
   return () => {
     forVideo.delete(listener);
-    if (forVideo.size === 0) listeners.delete(videoId);
+    // Only drop the entry if it is still this set: a second call must not
+    // evict whatever subscribed for this video in the meantime.
+    if (forVideo.size === 0 && listeners.get(videoId) === forVideo) {
+      listeners.delete(videoId);
+    }
   };
 };
 

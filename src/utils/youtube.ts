@@ -208,17 +208,27 @@ async function fetchFromInstance(
   }
 }
 
+export interface FetchPlaylistOptions {
+  /**
+   * Instances to try, in order. Defaults to the verified list above; taking it
+   * as an argument is what lets the fallback be exercised, since the default
+   * list is one entry long.
+   */
+  instances?: readonly string[];
+}
+
 /**
  * Fetches playlist data from YouTube's API
  * Uses the Invidious API as a CORS proxy to access YouTube data
  */
 export async function fetchPlaylistData(
-  playlistId: string
+  playlistId: string,
+  { instances = INVIDIOUS_INSTANCES }: FetchPlaylistOptions = {}
 ): Promise<PlaylistData> {
   let lastError: Error | null = null;
 
   // Try each instance until one works
-  for (const instance of INVIDIOUS_INSTANCES) {
+  for (const instance of instances) {
     try {
       // biome-ignore lint/suspicious/noExplicitAny: shape validated below via optional chaining/fallbacks
       const data = (await fetchFromInstance(instance, playlistId)) as any;

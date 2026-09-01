@@ -268,4 +268,113 @@ describe('fetchPlaylistData', () => {
 
     await expect(fetchPlaylistData('PLtest')).rejects.toThrow(/no video list/i);
   });
+
+  it('falls back to the next instance when one fails', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce(respondWith(aPlaylist));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const data = await fetchPlaylistData('PLtest', {
+      instances: ['https://dead.test', 'https://alive.test'],
+    });
+
+    expect(data.title).toBe('Deep work');
+    expect(fetchMock.mock.calls[0][0]).toContain('dead.test');
+    expect(fetchMock.mock.calls[1][0]).toContain('alive.test');
+  });
+
+  it('treats a non-ok response as a failed instance', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(respondWith(null, { ok: false, status: 502 }))
+      .mockResolvedValueOnce(respondWith(aPlaylist));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const data = await fetchPlaylistData('PLtest', {
+      instances: ['https://bad.test', 'https://alive.test'],
+    });
+
+    expect(data.title).toBe('Deep work');
+  });
+
+  it('reports the last failure when every instance is down', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(respondWith(null, { ok: false, status: 503 }))
+    );
+
+    await expect(
+      fetchPlaylistData('PLtest', {
+        instances: ['https://one.test', 'https://two.test'],
+      })
+    ).rejects.toThrow('Failed to fetch playlist data: HTTP error! status: 503');
+  });
+
+  it('reports a plain failure when there is no instance to try', async () => {
+    await expect(
+      fetchPlaylistData('PLtest', { instances: [] })
+    ).rejects.toThrow(
+      'Failed to fetch playlist data: all API endpoints failed to respond'
+    );
+  });
+
+  it('gives up on an instance that never answers, after 8s and not before', async () => {
+    vi.useFakeTimers();
+    let aborted = false;
+    // settles only if the caller aborts it
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              aborted = true;
+              reject(new Error('The operation was aborted'));
+            });
+          })
+      )
+    );
+
+    const pending = fetchPlaylistData('PLtest', {
+      instances: ['https://slow.test'],
+    });
+    const settled = expect(pending).rejects.toThrow(/aborted/i);
+
+    await vi.advanceTimersByTimeAsync(7999);
+    expect(aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(aborted).toBe(true);
+    await settled;
+  });
+
+  it('clears the abort timer once the instance has answered', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respondWith(aPlaylist)));
+
+    await fetchPlaylistData('PLtest');
+
+    // a surviving 8s timer would still be counted here
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('falls back on every field the instance leaves out', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          respondWith({ videos: [{ videoId: 'dQw4w9WgXcQ' }] })
+        )
+    );
+
+    const data = await fetchPlaylistData('PLtest');
+
+    expect(data.title).toBe('Untitled Playlist');
+    expect(data.author).toBe('Unknown Author');
+    expect(data.videos[0].channelTitle).toBe('Unknown Channel');
+    expect(data.videos[0].lengthSeconds).toBe(0);
+  });
 });

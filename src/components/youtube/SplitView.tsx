@@ -1,6 +1,9 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { VIDEO_PROGRESS_STORAGE_KEY } from '../../utils/videoProgress';
+import {
+  getVideoProgress,
+  subscribeToVideoProgress,
+} from '../../utils/videoProgress';
 import { formatDuration } from '../../utils/youtube';
 import { Logo } from '../Logo';
 import { usePlaylist } from './PlaylistContext';
@@ -115,35 +118,19 @@ const VideoItem = ({ video, isWatched }: VideoItemProps) => {
   const [progress, setProgress] = useState(0);
   const isCurrentlyPlaying = currentVideo?.id === video.id;
 
-  // Load saved progress on mount/video change, and keep refreshing it while
-  // this video is the one currently playing — VideoPlayer saves progress to
-  // localStorage every 5s while playing, so without this the bar would stay
-  // frozen at whatever it was on mount until the page is reloaded.
+  // Show the stored position, then let the store push every later write, so
+  // the bar follows the player as it saves rather than polling on a timer of
+  // its own.
   useEffect(() => {
-    const loadProgress = () => {
-      try {
-        const saved = localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY);
-        if (saved) {
-          const progressData = JSON.parse(saved);
-          const videoProgress = progressData[video.id] || 0;
-          if (video.lengthSeconds > 0) {
-            setProgress((videoProgress / video.lengthSeconds) * 100);
-          } else {
-            setProgress(0);
-          }
-        }
-      } catch (error) {
-        console.warn('[Debug] Failed to load video progress:', error);
-      }
-    };
+    const toPercent = (seconds: number) =>
+      video.lengthSeconds > 0 ? (seconds / video.lengthSeconds) * 100 : 0;
 
-    loadProgress();
+    setProgress(toPercent(getVideoProgress(video.id)));
 
-    if (!isCurrentlyPlaying) return;
-
-    const interval = setInterval(loadProgress, 5000);
-    return () => clearInterval(interval);
-  }, [video.id, video.lengthSeconds, isCurrentlyPlaying]);
+    return subscribeToVideoProgress(video.id, (seconds) => {
+      setProgress(toPercent(seconds));
+    });
+  }, [video.id, video.lengthSeconds]);
 
   const handleVideoSelect = () => {
     setCurrentVideo(video);

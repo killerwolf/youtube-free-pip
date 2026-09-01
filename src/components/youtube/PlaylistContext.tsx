@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { debugLog } from '../../utils/debugLog';
 import {
+  clearAllVideoProgress,
   setVideoProgress,
-  VIDEO_PROGRESS_STORAGE_KEY,
 } from '../../utils/videoProgress';
 import {
   extractPlaylistId,
@@ -311,7 +311,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_TITLE);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_AUTHOR);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.CURRENT_VIDEO);
-    localStorage.removeItem(VIDEO_PROGRESS_STORAGE_KEY); // Clear video progress
+    clearAllVideoProgress();
 
     // Clear watched videos only for the current playlist's videos
     if (videos.length > 0) {

@@ -8,7 +8,7 @@ export function PlaylistInput() {
   const [error, setError] = useState<string | null>(null);
   const { setPlaylistUrl } = usePlaylist();
   const inputRef = useRef<HTMLInputElement>(null);
-  const submitTimeoutRef = useRef<number>();
+  const submitTimeoutRef = useRef<number | undefined>(undefined);
 
   // Focus input on mount
   useEffect(() => {

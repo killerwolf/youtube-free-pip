@@ -89,14 +89,14 @@ export const VideoPlayer = () => {
 
   const playerRef = useRef<YT.Player | null>(null);
   const playerElementRef = useRef<HTMLDivElement>(null);
-  const progressIntervalRef = useRef<number>();
+  const progressIntervalRef = useRef<number | undefined>(undefined);
   const hasAutoMarkedAsWatched = useRef<boolean>(false);
   const lastProgressUpdate = useRef<{ timestamp: number; duration: number }>({
     timestamp: 0,
     duration: 0,
   });
   const isInitializing = useRef<boolean>(false);
-  const readyCheckIntervalRef = useRef<number>();
+  const readyCheckIntervalRef = useRef<number | undefined>(undefined);
 
   // Check if video should be marked as watched
   const checkAndMarkAsWatched = (timestamp: number, duration: number) => {

@@ -208,20 +208,38 @@ async function fetchFromInstance(
   }
 }
 
+export interface FetchPlaylistOptions {
+  /**
+   * Instances to try, in order. Defaults to the verified list above; taking it
+   * as an argument is what lets the fallback be exercised, since the default
+   * list is one entry long.
+   */
+  instances?: readonly string[];
+}
+
 /**
  * Fetches playlist data from YouTube's API
  * Uses the Invidious API as a CORS proxy to access YouTube data
  */
 export async function fetchPlaylistData(
-  playlistId: string
+  playlistId: string,
+  { instances = INVIDIOUS_INSTANCES }: FetchPlaylistOptions = {}
 ): Promise<PlaylistData> {
   let lastError: Error | null = null;
 
   // Try each instance until one works
-  for (const instance of INVIDIOUS_INSTANCES) {
+  for (const instance of instances) {
     try {
-      // biome-ignore lint/suspicious/noExplicitAny: shape validated below via optional chaining/fallbacks
+      // biome-ignore lint/suspicious/noExplicitAny: shape validated below by the Array.isArray guard and per-field fallbacks
       const data = (await fetchFromInstance(instance, playlistId)) as any;
+
+      // Every other field below falls back to a default; the video list can't,
+      // and an instance answering without one is answering wrongly. Treated as
+      // a failed instance so the next one is tried, rather than surfacing an
+      // empty playlist as a success or a raw TypeError as the error.
+      if (!Array.isArray(data?.videos)) {
+        throw new Error('playlist response carried no video list');
+      }
 
       return {
         title: data.title || 'Untitled Playlist',

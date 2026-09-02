@@ -1,16 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { debugLog } from '../../utils/debugLog';
 import {
+  ENTRY_PARAMS,
+  type PlaylistEntry,
+  type ResumeTarget,
+  resolveEntry,
+} from '../../utils/playlistEntry';
+import {
   clearAllVideoProgress,
   setVideoProgress,
 } from '../../utils/videoProgress';
-import {
-  extractPlaylistId,
-  fetchPlaylistData,
-  normalizePlaylistUrl,
-  parseResumeParams,
-  type ResumeTarget,
-} from '../../utils/youtube';
+import { extractPlaylistId, fetchPlaylistData } from '../../utils/youtube';
 
 export interface Video {
   id: string;
@@ -46,42 +46,23 @@ const LOCAL_STORAGE_KEYS = {
   PLAYLIST_AUTHOR: 'youtube-pip-playlist-author',
 } as const;
 
-// Helper function to get playlist URL from current page URL
-const getPlaylistUrlFromPageUrl = (): string | null => {
-  if (typeof window === 'undefined') return null;
-
-  const searchParams = new URLSearchParams(window.location.search);
-  const playlistIdParam = searchParams.get('list');
-  const fullUrlParam = searchParams.get('url');
-
-  if (playlistIdParam) {
-    const normalized = normalizePlaylistUrl(playlistIdParam);
-    if (normalized) return normalized;
-  }
-
-  if (fullUrlParam) {
-    const playlistId = extractPlaylistId(fullUrlParam);
-    if (playlistId) {
-      return normalizePlaylistUrl(fullUrlParam);
-    }
-  }
-
-  return null;
-};
+// The link this session was opened with, read once. resolveEntry owns every
+// supported shape, so nothing here needs to know which one was used.
+const entryFromPage = (): PlaylistEntry | null =>
+  typeof window === 'undefined' ? null : resolveEntry(window.location);
 
 export function PlaylistProvider({ children }: { children: React.ReactNode }) {
-  // Initialize state: URL parameters take precedence over localStorage
+  // Captured on the first render, before the cleanup effect below rewrites the
+  // address bar, so the link's contents survive being stripped from the URL.
+  const [entry] = useState(entryFromPage);
+
+  // The link wins over what was stored last time.
   const [playlistUrl, setPlaylistUrlState] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      // First check for URL parameters
-      const urlPlaylist = getPlaylistUrlFromPageUrl();
-      if (urlPlaylist) {
-        return urlPlaylist;
-      }
-      // Fallback to localStorage
-      return localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL);
-    }
-    return null;
+    if (typeof window === 'undefined') return null;
+    return (
+      entry?.playlistUrl ??
+      localStorage.getItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL)
+    );
   });
 
   const [playlistTitle, setPlaylistTitle] = useState<string>(() => {
@@ -124,27 +105,31 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  // A ?v=<id>&t=<seconds> pair on the page URL means this session was opened
-  // from a share link: once the playlist finishes loading, that video is
-  // selected and cued at the shared position. Captured during the first render
-  // so it survives the URL cleanup effect below.
+  // A share link names a video and a position: once the playlist finishes
+  // loading, that video is selected and cued there.
   const [pendingResume, setPendingResume] = useState<ResumeTarget | null>(
-    () => {
-      if (typeof window === 'undefined') return null;
-      return parseResumeParams(window.location.search);
-    }
+    () => entry?.resume ?? null
   );
 
-  // Strip the resume params once captured, so a reload (or a bookmark) doesn't
-  // yank playback back to the shared position after the user has moved on.
+  // The link has been read, so its params come out of the address bar: left in
+  // place they would yank playback back to the shared position on every reload,
+  // long after the user had moved on. On the legacy /playlist/<id> path the
+  // router has already redirected by now — React flushes child effects before
+  // parent ones — so this sees the ?list= form and clears that too.
   useEffect(() => {
+    // Only when a link was actually read: with nothing consumed there is
+    // nothing to clear, and discarding the params anyway would throw away a
+    // ?v=/?t= pair that no playlist happened to resolve alongside.
+    if (!entry) return;
+
     const url = new URL(window.location.href);
-    if (url.searchParams.has('v') || url.searchParams.has('t')) {
-      url.searchParams.delete('v');
-      url.searchParams.delete('t');
-      window.history.replaceState({}, '', url.toString());
+    if (!ENTRY_PARAMS.some((param) => url.searchParams.has(param))) return;
+
+    for (const param of ENTRY_PARAMS) {
+      url.searchParams.delete(param);
     }
-  }, []);
+    window.history.replaceState({}, '', url.toString());
+  }, [entry]);
 
   // Load videos when playlist URL changes
   useEffect(() => {
@@ -217,22 +202,9 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     setPendingResume(null);
   }, [pendingResume, videos]);
 
-  // Persist state changes to localStorage and clean URL parameters if needed
   useEffect(() => {
     if (playlistUrl) {
       localStorage.setItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL, playlistUrl);
-
-      // If this playlist came from URL parameters, clean the URL
-      const urlPlaylist = getPlaylistUrlFromPageUrl();
-      if (urlPlaylist === playlistUrl) {
-        // Clean URL parameters after successful loading
-        const newUrl = new URL(window.location.href);
-        if (newUrl.searchParams.has('list') || newUrl.searchParams.has('url')) {
-          newUrl.searchParams.delete('list');
-          newUrl.searchParams.delete('url');
-          window.history.replaceState({}, '', newUrl.toString());
-        }
-      }
     } else {
       localStorage.removeItem(LOCAL_STORAGE_KEYS.PLAYLIST_URL);
     }

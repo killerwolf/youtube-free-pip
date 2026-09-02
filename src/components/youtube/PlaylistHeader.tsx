@@ -1,12 +1,9 @@
 import { Check, Share2, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { buildShareLink } from '../../utils/playlistEntry';
 import { getVideoProgress } from '../../utils/videoProgress';
-import {
-  extractPlaylistId,
-  formatDuration,
-  generatePlaylistShareUrl,
-} from '../../utils/youtube';
+import { extractPlaylistId, formatDuration } from '../../utils/youtube';
 import { usePlaylist } from './PlaylistContext';
 
 // Copies text without the async Clipboard API, for browsers that don't expose
@@ -55,7 +52,7 @@ export function PlaylistHeader() {
     // player last checkpointed (every 5s, plus on pause/end) so that opening it
     // elsewhere picks playback back up there instead of at the playlist top.
     const startSeconds = currentVideo ? getVideoProgress(currentVideo.id) : 0;
-    const shareUrl = generatePlaylistShareUrl(playlistId, {
+    const shareUrl = buildShareLink(playlistId, {
       videoId: currentVideo?.id,
       startSeconds,
     });

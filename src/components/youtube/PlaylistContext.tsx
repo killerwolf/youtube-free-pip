@@ -117,6 +117,11 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
   // router has already redirected by now — React flushes child effects before
   // parent ones — so this sees the ?list= form and clears that too.
   useEffect(() => {
+    // Only when a link was actually read: with nothing consumed there is
+    // nothing to clear, and discarding the params anyway would throw away a
+    // ?v=/?t= pair that no playlist happened to resolve alongside.
+    if (!entry) return;
+
     const url = new URL(window.location.href);
     if (!ENTRY_PARAMS.some((param) => url.searchParams.has(param))) return;
 
@@ -124,7 +129,7 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
       url.searchParams.delete(param);
     }
     window.history.replaceState({}, '', url.toString());
-  }, []);
+  }, [entry]);
 
   // Load videos when playlist URL changes
   useEffect(() => {

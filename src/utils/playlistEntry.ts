@@ -1,4 +1,4 @@
-import { extractPlaylistId, normalizePlaylistUrl } from './youtube';
+import { extractPlaylistId, formatPlaylistUrl } from './youtube';
 
 /**
  * How the user arrived at a playlist.
@@ -75,14 +75,15 @@ export const resolveEntry = (location: EntryLocation): PlaylistEntry | null => {
     extractPlaylistId(playlistIdFromPath(location.pathname) ?? '');
   if (!playlistId) return null;
 
-  // Deliberately re-checked as a bare id. extractPlaylistId will pull anything
-  // out of a URL shaped like a playlist link, so this is what holds ?url= to
-  // the same prefix rule as ?list=: youtube.com/playlist?list=abc yields "abc",
-  // which is not a playlist id, and is refused here rather than fetched.
-  const playlistUrl = normalizePlaylistUrl(playlistId);
-  if (!playlistUrl) return null;
-
-  return { playlistId, playlistUrl, resume: resumeFrom(params) };
+  // Formatted, not re-validated. extractPlaylistId already applied the rules,
+  // and it only demands a known prefix of a *bare* id — a link may legitimately
+  // carry others, TLGG… share-sheet ids among them. Re-checking the extracted
+  // id as if it were bare would drop those.
+  return {
+    playlistId,
+    playlistUrl: formatPlaylistUrl(playlistId),
+    resume: resumeFrom(params),
+  };
 };
 
 export interface ShareLinkOptions {

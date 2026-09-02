@@ -31,13 +31,47 @@ describe('resolveEntry', () => {
     expect(resolveEntry({ pathname: '/', search: '' })).toBeNull();
   });
 
-  it('holds ?url= to the same id rule as ?list=', () => {
-    // The URL is shaped like a playlist link, but "abc" is not a playlist id.
-    // Accepting it would send a doomed request to the Invidious layer.
-    const search = `?url=${encodeURIComponent('https://www.youtube.com/playlist?list=abc')}`;
+  it('keeps an id whose prefix is not one a bare id may use', () => {
+    // TLGG… is a real YouTube share-sheet playlist id. extractPlaylistId only
+    // demands a known prefix of a *bare* id, so a link may carry this and load
+    // — re-validating the extracted id as bare would silently refuse it.
+    const carried = 'https://www.youtube.com/playlist?list=TLGGa1b2c3d4e5f6g7';
 
-    expect(resolveEntry({ pathname: '/', search })).toBeNull();
+    for (const search of [
+      `?list=${encodeURIComponent(carried)}`,
+      `?url=${encodeURIComponent(carried)}`,
+    ]) {
+      expect(resolveEntry({ pathname: '/', search })?.playlistUrl).toBe(
+        carried
+      );
+    }
+  });
+
+  it('still refuses a bare id with no recognised prefix', () => {
     expect(resolveEntry({ pathname: '/', search: '?list=abc' })).toBeNull();
+  });
+
+  it('resolves the youtu.be and watch shapes carried in ?url=', () => {
+    const shapes = [
+      `https://youtu.be/dQw4w9WgXcQ?list=${PL}`,
+      `https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=${PL}`,
+    ];
+
+    for (const shape of shapes) {
+      expect(
+        resolveEntry({
+          pathname: '/',
+          search: `?url=${encodeURIComponent(shape)}`,
+        })?.playlistUrl
+      ).toBe(canonical);
+    }
+  });
+
+  it('prefers ?list= over ?url= when a link carries both', () => {
+    const other = 'PLaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const search = `?list=${PL}&url=${encodeURIComponent(`https://www.youtube.com/playlist?list=${other}`)}`;
+
+    expect(resolveEntry({ pathname: '/', search })?.playlistId).toBe(PL);
   });
 
   it('reports no entry when the playlist id is not one', () => {

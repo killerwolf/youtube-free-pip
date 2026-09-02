@@ -55,7 +55,7 @@ export const findPlaylistInText = (text: string): string | null => {
 /**
  * Formats a playlist ID into a standard YouTube URL
  */
-const formatPlaylistUrl = (playlistId: string): string => {
+export const formatPlaylistUrl = (playlistId: string): string => {
   return `https://www.youtube.com/playlist?list=${playlistId}`;
 };
 

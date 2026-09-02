@@ -24,7 +24,7 @@ const PlaylistPathRedirect = () => {
     }
   }, [invalid]);
 
-  if (!entry) return <Navigate to="/" replace />;
+  if (invalid) return <Navigate to="/" replace />;
 
   const params = new URLSearchParams(location.search);
   params.set('list', entry.playlistId);

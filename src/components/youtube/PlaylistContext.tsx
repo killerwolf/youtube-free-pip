@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { debugLog } from '../../utils/debugLog';
 import {
+  ENTRY_PARAMS,
   type PlaylistEntry,
   type ResumeTarget,
   resolveEntry,
@@ -49,9 +50,6 @@ const LOCAL_STORAGE_KEYS = {
 // supported shape, so nothing here needs to know which one was used.
 const entryFromPage = (): PlaylistEntry | null =>
   typeof window === 'undefined' ? null : resolveEntry(window.location);
-
-// Params consumed by entryFromPage, cleared from the address bar once read.
-const ENTRY_PARAMS = ['list', 'url', 'v', 't'] as const;
 
 export function PlaylistProvider({ children }: { children: React.ReactNode }) {
   // Captured on the first render, before the cleanup effect below rewrites the
@@ -113,9 +111,11 @@ export function PlaylistProvider({ children }: { children: React.ReactNode }) {
     () => entry?.resume ?? null
   );
 
-  // One rewrite of the address bar, once, now the link has been read. Leaving
-  // the params in place would yank playback back to the shared position on
-  // every reload, long after the user had moved on.
+  // The link has been read, so its params come out of the address bar: left in
+  // place they would yank playback back to the shared position on every reload,
+  // long after the user had moved on. On the legacy /playlist/<id> path the
+  // router has already redirected by now — React flushes child effects before
+  // parent ones — so this sees the ?list= form and clears that too.
   useEffect(() => {
     const url = new URL(window.location.href);
     if (!ENTRY_PARAMS.some((param) => url.searchParams.has(param))) return;

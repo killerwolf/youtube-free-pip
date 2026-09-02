@@ -31,6 +31,15 @@ describe('resolveEntry', () => {
     expect(resolveEntry({ pathname: '/', search: '' })).toBeNull();
   });
 
+  it('holds ?url= to the same id rule as ?list=', () => {
+    // The URL is shaped like a playlist link, but "abc" is not a playlist id.
+    // Accepting it would send a doomed request to the Invidious layer.
+    const search = `?url=${encodeURIComponent('https://www.youtube.com/playlist?list=abc')}`;
+
+    expect(resolveEntry({ pathname: '/', search })).toBeNull();
+    expect(resolveEntry({ pathname: '/', search: '?list=abc' })).toBeNull();
+  });
+
   it('reports no entry when the playlist id is not one', () => {
     expect(
       resolveEntry({ pathname: '/', search: '?list=not-a-playlist' })
@@ -55,6 +64,22 @@ describe('the resume target', () => {
 describe('reading a position out of a link', () => {
   const resume = (search: string) =>
     resolveEntry({ pathname: '/', search: `?list=${PL}&${search}` })?.resume;
+
+  it('carries the video and position the link names', () => {
+    expect(resume('v=dQw4w9WgXcQ&t=304')).toEqual({
+      videoId: 'dQw4w9WgXcQ',
+      startSeconds: 304,
+    });
+  });
+
+  it('carries a position through the legacy /playlist path too', () => {
+    expect(
+      resolveEntry({
+        pathname: `/playlist/${PL}`,
+        search: '?v=dQw4w9WgXcQ&t=304',
+      })?.resume
+    ).toEqual({ videoId: 'dQw4w9WgXcQ', startSeconds: 304 });
+  });
 
   it('accepts the YouTube-style 123s form', () => {
     expect(resume('v=dQw4w9WgXcQ&t=304s')).toEqual({

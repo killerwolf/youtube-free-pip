@@ -5,11 +5,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # No target-branch on purpose. develop is this repository's default branch,
-    # so pull requests already open against it, which is what the GitFlow here
-    # wants; main is only ever reached by a release. Setting target-branch
-    # explicitly would be redundant and would stop these settings applying to
-    # Dependabot's security updates.
+    # No target-branch on purpose: develop is already the default branch, so
+    # pull requests open against it anyway, and setting it would exclude this
+    # entry from security updates.
     labels:
       - dependencies
     # CLAUDE.md requires conventional commits; this yields "chore(deps): ..."
@@ -27,8 +25,13 @@ updates:
           - minor
           - patch
     ignore:
-      # Migrations in their own right, done by hand rather than by a bot:
-      # each needs code changes, not just a version bump.
+      # Migrations in their own right, done by hand rather than by a bot: each
+      # needs code changes, not just a version bump.
+      #
+      # Note what this costs. ignore applies to security updates too, so if an
+      # advisory on one of these is only fixed by a major, no fix PR is raised.
+      # It is not silent — Dependabot alerts are enabled on the repository and
+      # are not filtered by this file — but the fix is then a manual job.
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
@@ -38,6 +41,8 @@ updates:
       - dependency-name: tailwindcss
         update-types:
           - version-update:semver-major
+      # lucide-react is 0.x, where semver calls 0.544 -> 0.545 a minor, so
+      # those still ride the grouped PR; only the 1.x jump is held back.
       - dependency-name: lucide-react
         update-types:
           - version-update:semver-major
@@ -56,6 +61,11 @@ updates:
       prefix: ci
       include: scope
     groups:
+      # Same split as npm above: routine bumps together, majors on their own,
+      # since an action's major is where the breaking change lives.
       actions:
         patterns:
           - "*"
+        update-types:
+          - minor
+          - patch

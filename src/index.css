@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Installed on a phone the page runs edge to edge, so anything the app does
+   not paint (the rubber-band overscroll, the area under a translucent status
+   bar) shows this colour. Keep it on the app's gray-900 (the same #111827 as
+   theme-color in index.html) rather than white. */
+html {
+  background-color: #111827;
+}

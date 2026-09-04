@@ -32,7 +32,10 @@ export const SplitView = () => {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-white">
+    // Installed on a phone (standalone), the status bar and home indicator
+    // overlay the page: keep the player and the list out from under them.
+    // Elsewhere the insets are zero and this is a no-op.
+    <div className="h-screen flex flex-col bg-gray-900 text-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       {/* Video Player Section */}
       <div className={currentVideo ? 'h-2/5' : 'h-0'}>
         {currentVideo && (

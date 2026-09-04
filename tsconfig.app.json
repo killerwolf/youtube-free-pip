@@ -1,9 +1,14 @@
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    // ES2022 rather than the browsers' floor being the constraint: Vite's
+    // default build target here is baseline-widely-available (Safari 16,
+    // Chrome 107), which is comfortably past every ES2022 library method.
+    // Vite ignores this target when transpiling, so it only decides what
+    // type-checking lets the code reach for.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 

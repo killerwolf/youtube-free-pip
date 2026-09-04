@@ -1,19 +1,3 @@
-export function extractYouTubeVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-    /youtube\.com\/embed\/([^&\n?#]+)/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match?.[1]) {
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
 const YOUTUBE_PLAYLIST_PATTERNS = [
   // Standard playlist URL
   /(?:https?:\/\/)?(?:www\.)?youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/,
@@ -76,81 +60,11 @@ export const formatPlaylistUrl = (playlistId: string): string => {
 };
 
 /**
- * Checks if a string contains a valid YouTube playlist URL or ID
- */
-export const isValidPlaylistInput = (text: string): boolean => {
-  return extractPlaylistId(text) !== null;
-};
-
-/**
  * Normalizes various YouTube playlist URL formats into a standard format
  */
 export const normalizePlaylistUrl = (input: string): string | null => {
   const playlistId = extractPlaylistId(input);
   return playlistId ? formatPlaylistUrl(playlistId) : null;
-};
-
-// A YouTube video ID is always 11 URL-safe base64 characters.
-const YOUTUBE_VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
-
-export interface PlaylistShareOptions {
-  /** Video to open when the link is followed. */
-  videoId?: string | null;
-  /** Playback position to resume at, in seconds. */
-  startSeconds?: number | null;
-  baseUrl?: string;
-}
-
-/**
- * Generates this app's own shareable URL for a playlist (?list=<id>).
- *
- * When a video (and optionally a position) is provided, the link also carries
- * ?v=<videoId>&t=<seconds> so that opening it on another device reopens the
- * playlist on that exact video, at the point playback had reached.
- */
-export const generatePlaylistShareUrl = (
-  playlistId: string,
-  options: PlaylistShareOptions = {}
-): string => {
-  const { videoId, startSeconds, baseUrl } = options;
-  const base = baseUrl || window.location.origin;
-
-  const params = new URLSearchParams({ list: playlistId });
-  if (videoId) {
-    params.set('v', videoId);
-    if (startSeconds && startSeconds > 0) {
-      params.set('t', String(Math.floor(startSeconds)));
-    }
-  }
-
-  return `${base}?${params.toString()}`;
-};
-
-export interface ResumeTarget {
-  videoId: string;
-  startSeconds: number;
-}
-
-/**
- * Reads the ?v=<videoId>&t=<seconds> pair out of a query string.
- *
- * `t` accepts either a plain number of seconds or the YouTube-style `123s`
- * form, and is optional — a link without it simply resumes from the start.
- */
-export const parseResumeParams = (search: string): ResumeTarget | null => {
-  const params = new URLSearchParams(search);
-
-  const videoId = params.get('v');
-  if (!videoId || !YOUTUBE_VIDEO_ID_PATTERN.test(videoId)) {
-    return null;
-  }
-
-  const rawStart = params.get('t');
-  const parsedStart = rawStart ? Number.parseInt(rawStart, 10) : 0;
-  const startSeconds =
-    Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : 0;
-
-  return { videoId, startSeconds };
 };
 
 export interface YouTubeVideo {
@@ -208,20 +122,38 @@ async function fetchFromInstance(
   }
 }
 
+export interface FetchPlaylistOptions {
+  /**
+   * Instances to try, in order. Defaults to the verified list above; taking it
+   * as an argument is what lets the fallback be exercised, since the default
+   * list is one entry long.
+   */
+  instances?: readonly string[];
+}
+
 /**
  * Fetches playlist data from YouTube's API
  * Uses the Invidious API as a CORS proxy to access YouTube data
  */
 export async function fetchPlaylistData(
-  playlistId: string
+  playlistId: string,
+  { instances = INVIDIOUS_INSTANCES }: FetchPlaylistOptions = {}
 ): Promise<PlaylistData> {
   let lastError: Error | null = null;
 
   // Try each instance until one works
-  for (const instance of INVIDIOUS_INSTANCES) {
+  for (const instance of instances) {
     try {
-      // biome-ignore lint/suspicious/noExplicitAny: shape validated below via optional chaining/fallbacks
+      // biome-ignore lint/suspicious/noExplicitAny: shape validated below by the Array.isArray guard and per-field fallbacks
       const data = (await fetchFromInstance(instance, playlistId)) as any;
+
+      // Every other field below falls back to a default; the video list can't,
+      // and an instance answering without one is answering wrongly. Treated as
+      // a failed instance so the next one is tried, rather than surfacing an
+      // empty playlist as a success or a raw TypeError as the error.
+      if (!Array.isArray(data?.videos)) {
+        throw new Error('playlist response carried no video list');
+      }
 
       return {
         title: data.title || 'Untitled Playlist',

@@ -1,66 +1,42 @@
 import { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { normalizePlaylistUrl } from '../../utils/youtube';
-import { usePlaylist } from './PlaylistContext';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { resolveEntry } from '../../utils/playlistEntry';
 import { SplitView } from './SplitView';
 
-// Component for handling /playlist/:playlistId route
-const PlaylistPage = () => {
-  const { playlistId } = useParams<{ playlistId: string }>();
-  const { setPlaylistUrl } = usePlaylist();
-  const navigate = useNavigate();
+/**
+ * /playlist/<id> is the old link shape. ?list=<id> is canonical — it is what
+ * the README documents and what the share button emits — so this redirects
+ * rather than loading the playlist a second way. Links already sent keep
+ * working, and anything else on the query string rides along.
+ */
+const PlaylistPathRedirect = () => {
+  const location = useLocation();
+  const entry = resolveEntry(location);
+  const invalid = entry === null;
 
   useEffect(() => {
-    if (playlistId) {
-      // Validate and load the playlist
-      const normalizedUrl = normalizePlaylistUrl(playlistId);
-      if (normalizedUrl) {
-        setPlaylistUrl(normalizedUrl);
-        toast.success('Playlist loaded from URL!', {
-          duration: 3000,
-          position: 'bottom-center',
-        });
-      } else {
-        toast.error('Invalid playlist ID in URL', {
-          duration: 5000,
-          position: 'bottom-center',
-        });
-        // Redirect to home page on invalid playlist ID
-        navigate('/', { replace: true });
-      }
+    if (invalid) {
+      toast.error('Invalid playlist ID in URL', {
+        duration: 5000,
+        position: 'bottom-center',
+      });
     }
-  }, [playlistId, setPlaylistUrl, navigate]);
+  }, [invalid]);
 
-  // Render the same SplitView component
-  return <SplitView />;
+  if (invalid) return <Navigate to="/" replace />;
+
+  const params = new URLSearchParams(location.search);
+  params.set('list', entry.playlistId);
+  return <Navigate to={`/?${params.toString()}`} replace />;
 };
 
-// Main router component for playlist-related routes
 export const PlaylistRouter = () => {
   return (
     <Routes>
-      {/* Route for /playlist/:playlistId */}
-      <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
-      {/* Default route - renders SplitView with URL parameter detection */}
+      <Route path="/playlist/:playlistId" element={<PlaylistPathRedirect />} />
+      {/* SplitView reads the link through PlaylistContext. */}
       <Route path="/*" element={<SplitView />} />
     </Routes>
   );
-};
-
-// Helper function to generate clean playlist URLs
-export const generateCleanPlaylistUrl = (
-  playlistId: string,
-  baseUrl?: string
-): string => {
-  const base = baseUrl || window.location.origin;
-  return `${base}/playlist/${playlistId}`;
-};
-
-// Helper function to navigate to a playlist programmatically
-export const navigateToPlaylist = (
-  playlistId: string,
-  navigate: ReturnType<typeof useNavigate>
-) => {
-  navigate(`/playlist/${playlistId}`);
 };
